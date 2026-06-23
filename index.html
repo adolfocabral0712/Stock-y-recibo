@@ -911,10 +911,24 @@ function esFecha(valor){
 }
 function convertirFecha(valor){
   if(valor instanceof Date) return valor;
-  if(typeof valor === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(valor.trim())){
-    const [dd,mm,yyyy] = valor.trim().split('/').map(Number);
-    return new Date(yyyy, mm-1, dd);
+
+  if(typeof valor === 'string'){
+    const texto = valor.trim();
+
+    // Las fechas ISO (YYYY-MM-DD) se interpretan como UTC con new Date(),
+    // lo que puede restar un día en Uruguay y desplazar enero a diciembre.
+    // Se construyen en hora local para conservar exactamente el día y el mes de Excel.
+    const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/);
+    if(iso){
+      return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    }
+
+    if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(texto)){
+      const [dd,mm,yyyy] = texto.split('/').map(Number);
+      return new Date(yyyy, mm-1, dd);
+    }
   }
+
   return new Date(valor);
 }
 function formatearFechaTitulo(valor){
