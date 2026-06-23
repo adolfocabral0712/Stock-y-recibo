@@ -811,6 +811,35 @@ td{
   .contract-year-btn{padding:7px 11px;}
 }
 
+
+/* Corrección móvil: las tarjetas personalizadas del resumen ocupan todo el ancho. */
+@media (max-width: 1100px){
+  #page-resumen .summary-montes,
+  #page-resumen .summary-produccion,
+  #page-resumen .summary-stocks{
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 650px){
+  #page-resumen .summary-montes,
+  #page-resumen .summary-produccion,
+  #page-resumen .summary-stocks{
+    grid-column: 1 / -1 !important;
+  }
+
+  /* La tabla conserva sus columnas y se desplaza dentro de la tarjeta, no el dashboard entero. */
+  #page-resumen .summary-montes .table-scroll{
+    overflow-x: auto !important;
+  }
+
+  #page-resumen .summary-montes table{
+    min-width: 720px !important;
+  }
+}
+
 </style>
 </head>
 <body>
