@@ -2,7 +2,6 @@
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1" name="viewport">
 <title>Dashboard RESUMEN</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -820,11 +819,11 @@ td{
     <h1>Dashboard RESUMEN</h1>
     <p>Datos al <span id="fechaTitulo">Lunes 22 de junio de 2026</span></p>
   </div>
-  <div class="upload">
-    <input accept=".xlsx,.xlsm,.xls" id="file" type="file" wfd-id="id0">
+  <div class="upload" id="dataStatus">
+    <span class="pill">Cargando datos publicados…</span>
   </div>
 </header>
-<main><div class="card" id="empty" style="display: none;"><b>Cargá el Excel</b><p class="muted">El HTML lee rangos fijos de la hoja RESUMEN. Podés ajustar los rangos en el bloque <code>RANGES</code> del archivo.</p></div><div id="dash" style="display: block;">
+<main><div class="card" id="empty"><b>Cargando dashboard</b><p class="muted">Conectando con datos.json…</p></div><div id="dash" style="display: none;">
     <div class="kpis">
       <div class="kpi"><div class="label">Stock BDMT en pila de chips</div><div class="value">29.844,48</div><div class="sub">Total stock actual</div></div>
       <div class="kpi"><div class="label">Saldo Troncos para chipear x Rend.</div><div class="value">30.423,59</div><div class="sub">Total disponible para producción</div></div>
@@ -1721,9 +1720,29 @@ document.addEventListener('contrato-visible', () => {
   if(datosContratoHistorico.length) renderVistaContrato();
 });
 
-function render(ws){
-  document.getElementById('fechaTitulo').textContent = formatearFechaTitulo(new Date());
-  const r = {}; Object.keys(RANGES).forEach(k=>r[k]=aoa(ws,RANGES[k]));
+function renderDatos(datos){
+  const origen = datos || {};
+  const alias = {
+    saldos:['saldos'],
+    produccion:['produccion'],
+    stocks:['stocks'],
+    rolesDiario:['rolesDiario','rolosDiario'],
+    rolesSemanal:['rolesSemanal','rolosSemanal'],
+    rolesMensual:['rolesMensual','rolosMensual'],
+    trozasDiario:['trozasDiario'],
+    trozasSemanal:['trozasSemanal'],
+    trozasMensual:['trozasMensual'],
+    contratoFull:['contratoFull']
+  };
+
+  const r = {};
+  Object.keys(RANGES).forEach(k => {
+    const key = (alias[k] || [k]).find(nombre => Array.isArray(origen[nombre]));
+    r[k] = key ? origen[key] : [];
+  });
+
+  const fechaDatos = origen.actualizado || new Date();
+  document.getElementById('fechaTitulo').textContent = formatearFechaTitulo(fechaDatos);
   const entregas = prepararEntregasContrato(r.contratoFull);
   r.contrato = entregas.combinada;
   const saldos = objTable(r.saldos), prod=objTable(r.produccion), stocks=objTable(r.stocks);
@@ -1930,14 +1949,32 @@ function formatearTablasIniciales(){
   });
 }
 
-formatearTablasIniciales();
-document.getElementById('fechaTitulo').textContent = formatearFechaTitulo(new Date());
-document.getElementById('file').addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const data = await f.arrayBuffer(); const wb = XLSX.read(data,{cellDates:true});
-  const ws = wb.Sheets[SHEET]; if(!ws){ alert(`No existe la hoja ${SHEET}`); return; }
-  render(ws);
-});
+function actualizarEstadoDatos(texto, esError=false){
+  const status = document.getElementById('dataStatus');
+  if(!status) return;
+  status.innerHTML = `<span class="pill" style="${esError ? 'background:rgba(255,94,108,.14);color:#ffd0d5' : ''}">${texto}</span>`;
+}
+
+async function cargarDatosAutomaticos(){
+  actualizarEstadoDatos('Cargando datos publicados…');
+  try{
+    const respuesta = await fetch(`./datos.json?ts=${Date.now()}`, {cache:'no-store'});
+    if(!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
+
+    const datos = await respuesta.json();
+    renderDatos(datos);
+    const fecha = datos.actualizado ? formatearFechaTitulo(datos.actualizado) : formatearFechaTitulo(new Date());
+    actualizarEstadoDatos(`Datos actualizados: ${fecha}`);
+  }catch(error){
+    console.error('No se pudo cargar datos.json:', error);
+    document.getElementById('dash').style.display = 'none';
+    document.getElementById('empty').style.display = 'block';
+    document.getElementById('empty').innerHTML = `<b>No fue posible cargar los datos</b><p class="muted">Verificá que el archivo <code>datos.json</code> exista en la misma carpeta que este HTML y que el JSON sea válido.</p>`;
+    actualizarEstadoDatos('Error al cargar datos.json', true);
+  }
+}
+
+cargarDatosAutomaticos();
 
 </script>
 
