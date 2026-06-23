@@ -1,24 +1,13 @@
 {
-  "actualizado": "2026-06-23 10:30",
-  "saldos": [
-    ["Monte", "Mcs Cargados", "Mcs en monte", "Saldo estimado a cargar"],
-    ["Cerro Olivo", 30224.54, 36303.81, 6079.27],
-    ["Jean Palacio 2026", 1938.77, 6000, 4061.23]
-  ],
-  "produccion": [
-    ["Fecha", "Producción BDMT"],
-    ["2026-06-20", 1450.35],
-    ["2026-06-21", 1389.62]
-  ],
-  "stocks": [
-    ["Concepto", "Portugal G.", "APP", "Total"],
-    ["Stock BDMT en pila de chips", 10500, 8200, 18700]
-  ],
-  "rolosDiario": [],
-  "rolosSemanal": [],
-  "rolosMensual": [],
-  "trozasDiario": [],
-  "trozasSemanal": [],
-  "trozasMensual": [],
-  "contratoFull": []
+  "actualizado": "2026-06-23T14:30:00",
+  "saldos": [["Monte", "Mcs Cargados", "Mcs en monte", "Saldo estimado a cargar"]],
+  "produccion": [["Mes", "Date", "BDMT"]],
+  "stocks": [["SALDO EN CHIPS", "Portugal G.", "APP", "TOTAL"]],
+  "rolesDiario": [["Día", "Metros Cubicos", "Densidad Promedio", "Total Camiones"]],
+  "rolesSemanal": [["Semana", "Metros Cubicos", "Densidad Promedio"]],
+  "rolesMensual": [["Mes", "Metros Cubicos", "Densidad Promedio"]],
+  "trozasDiario": [["Día", "Viajes"]],
+  "trozasSemanal": [["Semana", "Viajes"]],
+  "trozasMensual": [["Mes", "Viajes"]],
+  "contratoFull": [["Mes", "Fecha cierre", "A entregar MCS", "Entregado MCS", "Saldo Mensual", "Días Entregas 15 Cam/Dia", "Entrega Anual", "Entrega Contrato"]]
 }
