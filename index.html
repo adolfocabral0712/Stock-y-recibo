@@ -315,6 +315,116 @@ tr.subsection-row td{
   min-height:16px;
 }
 
+
+/* Mejora para celular: tablas con desplazamiento horizontal */
+html,
+body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+.card{
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+.table-scroll{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  border-radius:12px;
+}
+
+.table-scroll table{
+  min-width:620px;
+}
+
+.card.span12 .table-scroll table{
+  min-width:980px;
+}
+
+.card::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar{
+  height:8px;
+}
+
+.card::-webkit-scrollbar-track,
+.table-scroll::-webkit-scrollbar-track{
+  background:#111a2e;
+  border-radius:999px;
+}
+
+.card::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb{
+  background:#4ea1ff;
+  border-radius:999px;
+}
+
+@media(max-width:650px){
+  body{
+    overflow-x:hidden;
+  }
+
+  header{
+    gap:12px;
+  }
+
+  .title h1{
+    font-size:22px;
+  }
+
+  .title p{
+    font-size:12px;
+  }
+
+  main{
+    padding:10px 10px 24px;
+  }
+
+  .grid{
+    gap:12px;
+  }
+
+  .card{
+    padding:12px;
+    border-radius:14px;
+  }
+
+  .kpi{
+    min-height:96px;
+    padding:12px;
+  }
+
+  .kpi .value{
+    font-size:22px;
+  }
+
+  th,td{
+    padding:7px 8px;
+    font-size:11px;
+  }
+
+  .export-actions{
+    width:100%;
+  }
+
+  .export-btn{
+    width:100%;
+  }
+
+  .upload{
+    width:100%;
+  }
+
+  input[type="file"]{
+    width:100%;
+    max-width:100%;
+  }
+}
+
 @media(max-width:1100px){
   .span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 12}
   .kpis{grid-template-columns:repeat(2,1fr)}
@@ -340,7 +450,7 @@ tr.subsection-row td{
   </div>
 
   <div class="upload">
-    <input accept=".xlsx,.xlsm,.xls" id="file" type="file">
+    <input accept=".xlsx,.xlsm,.xls" id="file" type="file" wfd-id="id0">
   </div>
 </header>
 <main><div class="card" id="empty" style="display: none;"><b>Cargá el Excel</b><p class="muted">El HTML lee rangos fijos de la hoja RESUMEN. Podés ajustar los rangos en el bloque <code>RANGES</code> del archivo.</p></div><div id="dash" style="display: block;">
@@ -698,7 +808,7 @@ function tableHtml(title, rows, max=10){
     body = [...normalRows.slice(0,max), ...totalRows];
   }
 
-  return `<h2>${title}</h2><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>{
+  return `<h2>${title}</h2><div class="table-scroll"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>{
     const firstCell = normalizarTexto(r[0]);
     const textoFila = String(r[0] || '').trim().toUpperCase();
     const isTotal = textoFila.includes('ACUMULADO') || textoFila.includes('TOTAL');
@@ -731,7 +841,7 @@ function tableHtml(title, rows, max=10){
     }).join('');
 
     return `<tr${rowClass}>${cols}</tr>`;
-  }).join('')}</tbody></table>`;
+  }).join('')}</tbody></table></div>`;
 }
 function lastNumber(rows){ let vals=[]; rows.flat().forEach(v=>{ if(typeof v==='number') vals.push(v); }); return vals.at(-1) ?? 0; }
 function ultimoNumeroFila(row){
@@ -873,4 +983,5 @@ document.getElementById('btnPDF').addEventListener('click', async ()=>{
 });
 
 </script>
+
 </body></html>
