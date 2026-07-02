@@ -840,6 +840,45 @@ td{
   }
 }
 
+
+/* Vista integrada: Densidades */
+#page-densidades{
+  width:100%;
+}
+
+#page-densidades .page-title{
+  margin-bottom:8px;
+}
+
+.density-embed-card{
+  width:100%;
+  min-height:calc(100vh - 230px);
+  padding:0;
+  overflow:hidden;
+  background:#101820;
+}
+
+.density-embed{
+  display:block;
+  width:100%;
+  height:calc(100vh - 240px);
+  min-height:980px;
+  border:0;
+  background:#101820;
+}
+
+@media(max-width:650px){
+  .density-embed-card{
+    min-height:calc(100vh - 175px);
+    border-radius:14px;
+  }
+
+  .density-embed{
+    height:calc(100vh - 185px);
+    min-height:1180px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1935,7 +1974,8 @@ function construirVistasIniciales(){
     <button class="tab-btn active" data-page="page-resumen" type="button">🏠 Resumen</button>
     <button class="tab-btn" data-page="page-rolos" type="button">🚚 Rolos</button>
     <button class="tab-btn" data-page="page-trozas" type="button">🪵 Trozas</button>
-    <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>`;
+    <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
+    <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>`;
 
   dash.innerHTML = '';
   dash.appendChild(tabs);
@@ -1957,6 +1997,33 @@ function construirVistasIniciales(){
   dash.appendChild(crearPagina('page-rolos','Rolos',rolosCards));
   dash.appendChild(crearPagina('page-trozas','Trozas',trozasCards));
   dash.appendChild(crearPagina('page-contrato','Contrato UPM',contratoCards,false,'Año actual con acumulado histórico desde el inicio del contrato.'));
+
+  const paginaDensidades = document.createElement('section');
+  paginaDensidades.id = 'page-densidades';
+  paginaDensidades.className = 'dashboard-page';
+
+  const tituloDensidades = document.createElement('div');
+  tituloDensidades.className = 'page-title';
+  tituloDensidades.textContent = 'Análisis de densidades';
+  paginaDensidades.appendChild(tituloDensidades);
+
+  const notaDensidades = document.createElement('div');
+  notaDensidades.className = 'page-note';
+  notaDensidades.textContent = 'Filtros, detalle, promedios y tendencia de densidad por remito.';
+  paginaDensidades.appendChild(notaDensidades);
+
+  const tarjetaDensidades = document.createElement('div');
+  tarjetaDensidades.className = 'card density-embed-card';
+
+  const iframeDensidades = document.createElement('iframe');
+  iframeDensidades.className = 'density-embed';
+  iframeDensidades.src = './densidades.html';
+  iframeDensidades.title = 'Dashboard de densidades';
+  iframeDensidades.loading = 'lazy';
+
+  tarjetaDensidades.appendChild(iframeDensidades);
+  paginaDensidades.appendChild(tarjetaDensidades);
+  dash.appendChild(paginaDensidades);
 
   activarNavegacionDashboard();
 }
