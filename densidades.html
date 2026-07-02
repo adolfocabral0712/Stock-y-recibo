@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Densidad</title>
+  <style>
+    :root {
+      --bg: #101820;
+      --panel: #18242e;
+      --panel-soft: #1d2d38;
+      --border: #314654;
+      --text: #eef5f8;
+      --muted: #aebec8;
+      --accent: #54c2b5;
+      --accent-soft: rgba(84, 194, 181, 0.14);
+      --danger: #f09999;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .container {
+      width: min(1600px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2vw, 2.1rem);
+      letter-spacing: .2px;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+
+    .status {
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 11px 13px;
+      color: var(--muted);
+      font-size: .86rem;
+      text-align: right;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(145px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .filter-card, .kpi, .table-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .filter-card {
+      padding: 12px;
+    }
+
+    .filter-card label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      outline: none;
+      padding: 10px 9px;
+      font-size: .92rem;
+    }
+
+    select:focus { border-color: var(--accent); }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin: 2px 0 20px;
+    }
+
+    button {
+      border: 1px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+      padding: 9px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover { background: rgba(84, 194, 181, .24); }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(170px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .kpi { padding: 16px; }
+
+    .kpi .label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-size: .74rem;
+      font-weight: 700;
+    }
+
+    .kpi .value {
+      margin-top: 8px;
+      font-size: clamp(1.35rem, 2vw, 1.9rem);
+      font-weight: 750;
+    }
+
+    .kpi .detail {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .table-card { overflow: hidden; }
+    .summary-card { margin-bottom: 18px; }
+    .chart-card { margin-top: 18px; overflow: hidden; }
+    .chart-wrap {
+      position: relative;
+      height: 430px;
+      padding: 14px 16px 18px;
+    }
+    .chart-note {
+      padding: 0 16px 15px;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .chart-header {
+      position: relative;
+      align-items: flex-start;
+      min-height: 76px;
+    }
+    .chart-header .results-text {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(56%, 620px);
+      text-align: center;
+      white-space: normal;
+    }
+    .chart-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .chart-filter label {
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .chart-filter select {
+      min-width: 240px;
+    }
+    @media (max-width: 680px) {
+      .chart-wrap { height: 380px; padding: 10px; }
+      .chart-header .results-text {
+        position: static;
+        transform: none;
+        width: 100%;
+        margin-top: 12px;
+        text-align: center;
+      }
+    }
+
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 17px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-head h2 {
+      font-size: 1.05rem;
+      margin: 0;
+    }
+
+    .results-text {
+      color: var(--muted);
+      font-size: .88rem;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 66vh;
+    }
+
+    table {
+      width: 100%;
+      min-width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+
+    /* La tabla resumen aprovecha todo el ancho del panel en escritorio. */
+    .summary-table {
+      width: 100%;
+      min-width: 100%;
+    }
+
+    .summary-table th:nth-child(1),
+    .summary-table td:nth-child(1) { width: 9%; }
+
+    .summary-table th:nth-child(2),
+    .summary-table td:nth-child(2) { width: 12%; }
+
+    .summary-table th:nth-child(3),
+    .summary-table td:nth-child(3) { width: 25%; }
+
+    .summary-table th:nth-child(4),
+    .summary-table td:nth-child(4) { width: 22%; }
+
+    .summary-table th:nth-child(5),
+    .summary-table td:nth-child(5) { width: 16%; }
+
+    .summary-table th:nth-child(6),
+    .summary-table td:nth-child(6) { width: 16%; }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    th {
+      background: #22333f;
+      padding: 11px 12px;
+      text-align: center;
+      font-size: .76rem;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      color: #d7e2e8;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      width: max-content;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(49, 70, 84, .75);
+      font-size: .9rem;
+      vertical-align: middle;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover { background: rgba(255,255,255,.035); }
+
+    .num { text-align: center; font-variant-numeric: tabular-nums; }
+    .center { text-align: center; }
+
+    tfoot td {
+      position: sticky;
+      bottom: 0;
+      background: #28424d;
+      font-weight: 800;
+      border-top: 2px solid var(--accent);
+      text-align: center;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .empty {
+      padding: 34px 18px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1120px) {
+      .filters { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+      .kpis { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      .container { width: min(100% - 22px, 1600px); padding-top: 18px; }
+      .topbar { display: block; }
+      .status { margin-top: 14px; text-align: left; white-space: normal; }
+      .filters { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .kpis { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .filter-card, .kpi { border-radius: 9px; }
+      .table-head { align-items: flex-start; flex-direction: column; }
+
+      .table-wrap {
+        max-height: none;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table {
+        min-width: 980px;
+      }
+
+      .summary-table {
+        min-width: 700px;
+      }
+
+      th {
+        padding: 9px 8px;
+        font-size: .68rem;
+      }
+
+      td {
+        padding: 8px;
+        font-size: .78rem;
+      }
+
+      tfoot td {
+        white-space: normal;
+        min-width: 110px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .filters, .kpis { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="topbar">
+      <div>
+        <h1>Dashboard de Densidad</h1>
+        <p class="subtitle">Consulta de remitos y promedio de densidad según los filtros seleccionados.</p>
+      </div>
+      <div class="status" id="status">Cargando datos…</div>
+    </section>
+
+    <section class="filters" aria-label="Filtros">
+      <div class="filter-card">
+        <label for="fAnio">Año</label>
+        <select id="fAnio"></select>
+      </div>
+      <div class="filter-card">
+        <label for="fMes">Mes</label>
+        <select id="fMes"></select>
+      </div>
+      <div class="filter-card">
+        <label for="fFecha">Fecha</label>
+        <select id="fFecha"></select>
+      </div>
+      <div class="filter-card">
+        <label for="fMonte">Monte de origen</label>
+        <select id="fMonte"></select>
+      </div>
+      <div class="filter-card">
+        <label for="fProducto">Producto</label>
+        <select id="fProducto"></select>
+      </div>
+      <div class="filter-card">
+        <label for="fEmpresa">Empresa</label>
+        <select id="fEmpresa"></select>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="button" id="btnLimpiar">Limpiar filtros</button>
+    </div>
+
+    <section class="kpis">
+      <article class="kpi">
+        <div class="label">Remitos filtrados</div>
+        <div class="value" id="kpiRegistros">0</div>
+        <div class="detail">Cantidad de registros mostrados</div>
+      </article>
+      <article class="kpi">
+        <div class="label">Promedio densidad</div>
+        <div class="value" id="kpiPromedio">—</div>
+        <div class="detail">Solo registros no anulados con densidad válida</div>
+      </article>
+</section>
+
+
+    <section class="table-card summary-card">
+      <div class="table-head">
+        <h2>Resumen de densidad por Año, Mes, Monte y Producto</h2>
+        <div class="results-text" id="summaryText">0 grupos</div>
+      </div>
+      <div class="table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Mes</th>
+              <th>Monte de origen</th>
+              <th>Producto</th>
+              <th class="num">Remitos válidos</th>
+              <th class="num">Promedio densidad</th>
+            </tr>
+          </thead>
+          <tbody id="resumenBody"></tbody>
+          <tfoot id="resumenFoot"></tfoot>
+        </table>
+      </div>
+      <div class="empty" id="summaryEmpty" hidden>No hay registros válidos para resumir con los filtros seleccionados.</div>
+    </section>
+
+    <section class="table-card">
+      <div class="table-head">
+        <h2>Detalle de remitos</h2>
+        <div class="results-text" id="resultsText">0 registros</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora creado</th>
+              <th class="num">Remito origen</th>
+              <th class="num">Remito sistema</th>
+              <th>Monte origen</th>
+              <th>Producto</th>
+              <th>Contratista cosecha</th>
+              <th class="num">Densidad</th>
+              <th class="center">Anulado</th>
+            </tr>
+          </thead>
+          <tbody id="tablaBody"></tbody>
+          <tfoot id="tablaFoot"></tfoot>
+        </table>
+      </div>
+      <div class="empty" id="emptyState" hidden>No hay registros que coincidan con los filtros seleccionados.</div>
+    </section>
+
+    <section class="table-card chart-card">
+      <div class="table-head chart-header">
+        <div>
+          <h2>Densidad por remito</h2>
+          <div class="chart-filter">
+            <label for="fProductoGrafica">Producto en la gráfica</label>
+            <select id="fProductoGrafica"></select>
+          </div>
+        </div>
+        <div class="results-text" id="chartText">0 registros válidos · Promedio: —</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="graficaDensidad"></canvas>
+      </div>
+      <div class="chart-note">
+        Eje X: Remito origen · Producto · Contratista de cosecha. Eje Y: Densidad. Se excluyen remitos anulados y registros sin densidad.
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Enlace de Dropbox convertido a descarga directa.
+    // Para mayor estabilidad al publicar, alojá datos.json en el mismo repositorio de GitHub
+    // y reemplazá esta línea por: const URL_DATOS = "./datos.json";
+    const URL_DATOS = "https://dl.dropboxusercontent.com/scl/fi/0elgiam9fez982xm0432t/datos.json?rlkey=arlb0dnc72rtdf0olz9ssi7rm&dl=1";
+
+    const state = {
+      datos: [],
+      filtros: {
+        anio: "",
+        mes: "",
+        fecha: "",
+        monte_origen: "",
+        producto: "",
+        empresa: ""
+      },
+      productoGrafica: ""
+    };
+
+    const mesesOrden = {
+      enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+      julio: 7, agosto: 8, setiembre: 9, septiembre: 9, octubre: 10,
+      noviembre: 11, diciembre: 12
+    };
+
+    const els = {
+      fAnio: document.getElementById("fAnio"),
+      fMes: document.getElementById("fMes"),
+      fFecha: document.getElementById("fFecha"),
+      fMonte: document.getElementById("fMonte"),
+      fProducto: document.getElementById("fProducto"),
+      fEmpresa: document.getElementById("fEmpresa"),
+      body: document.getElementById("tablaBody"),
+      foot: document.getElementById("tablaFoot"),
+      resumenBody: document.getElementById("resumenBody"),
+      resumenFoot: document.getElementById("resumenFoot"),
+      summaryText: document.getElementById("summaryText"),
+      summaryEmpty: document.getElementById("summaryEmpty"),
+      status: document.getElementById("status"),
+      empty: document.getElementById("emptyState"),
+      resultsText: document.getElementById("resultsText"),
+      kpiRegistros: document.getElementById("kpiRegistros"),
+      kpiPromedio: document.getElementById("kpiPromedio"),
+      btnLimpiar: document.getElementById("btnLimpiar"),
+      graficaDensidad: document.getElementById("graficaDensidad"),
+      chartText: document.getElementById("chartText"),
+      fProductoGrafica: document.getElementById("fProductoGrafica")
+    };
+
+    let graficaDensidad = null;
+
+    function obtenerValor(obj, ...claves) {
+      for (const clave of claves) {
+        if (Object.prototype.hasOwnProperty.call(obj, clave) && obj[clave] !== null && obj[clave] !== undefined) {
+          return obj[clave];
+        }
+      }
+      return "";
+    }
+
+    function normalizarTexto(valor) {
+      return String(valor ?? "")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function escapeHTML(valor) {
+      return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function parseNumero(valor) {
+      if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
+      const texto = String(valor ?? "").trim();
+      if (!texto) return null;
+
+      // Soporta: 0,885 / 0.885 / 1.234,56 / 1234.56
+      const limpio = texto
+        .replace(/\s/g, "")
+        .replace(/\.(?=\d{3}(?:,|$))/g, "")
+        .replace(",", ".");
+
+      const numero = Number(limpio);
+      return Number.isFinite(numero) ? numero : null;
+    }
+
+    function parseFecha(valor) {
+      if (!valor) return null;
+      const texto = String(valor).trim();
+
+      // yyyy-mm-dd o yyyy-mm-ddTHH:mm:ss
+      const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+
+      // dd/mm/yyyy
+      const latam = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (latam) return new Date(Number(latam[3]), Number(latam[2]) - 1, Number(latam[1]));
+
+      const fecha = new Date(texto);
+      return Number.isNaN(fecha.getTime()) ? null : fecha;
+    }
+
+    function formatearFecha(valor) {
+      const fecha = parseFecha(valor);
+      return fecha
+        ? fecha.toLocaleDateString("es-UY", { day: "2-digit", month: "2-digit", year: "numeric" })
+        : String(valor ?? "");
+    }
+
+    function obtenerHora(valor) {
+      const texto = String(valor ?? "");
+      const match = texto.match(/(?:T|\s)(\d{1,2}:\d{2})(?::\d{2})?$/);
+      return match ? match[1] : "";
+    }
+
+    function formatearNumero(valor, decimales = 0) {
+      const numero = parseNumero(valor);
+      return numero === null
+        ? "—"
+        : numero.toLocaleString("es-UY", {
+            minimumFractionDigits: decimales,
+            maximumFractionDigits: decimales
+          });
+    }
+
+    function normalizarRegistro(r) {
+      const fecha = obtenerValor(r, "fecha", "FECHA");
+      const fechaCreado = obtenerValor(r, "fecha_creado", "fecha_de_creado", "FECHA_DE_CREADO");
+      const anioOriginal = obtenerValor(r, "anio", "AÑO", "ano", "ANO");
+      const fechaConvertida = parseFecha(fecha);
+
+      return {
+        anio: String(anioOriginal || (fechaConvertida ? fechaConvertida.getFullYear() : "")).trim(),
+        mes: String(obtenerValor(r, "mes", "MES")).trim(),
+        fecha: fecha,
+        fecha_creado: fechaCreado,
+        remito_origen: obtenerValor(r, "remito_origen", "REMITO_ORIGEN"),
+        remito_sistema: obtenerValor(r, "remito_sistema", "REMITO_SISTEMA"),
+        empresa: String(obtenerValor(r, "empresa", "EMPRESA")).trim(),
+        monte_origen: String(obtenerValor(r, "monte_origen", "MONTE_ORIGEN")).trim(),
+        producto: String(obtenerValor(r, "producto", "PRODUCTO")).trim(),
+        contratista_cosecha: String(obtenerValor(r, "contratista_cosecha", "CONTRATISTA_COSECHA")).trim(),
+        densidad: parseNumero(obtenerValor(r, "densidad", "DENSIDAD")),
+        anulado: String(obtenerValor(r, "anulado", "ANULADO") || "No").trim()
+      };
+    }
+
+    function esAnulado(registro) {
+      return ["si", "sí", "true", "1", "anulado"].includes(normalizarTexto(registro.anulado));
+    }
+
+    function registrosParaOpciones(excluirFiltro = "") {
+      return state.datos.filter(r =>
+        (!excluirFiltro || excluirFiltro === "anio" || !state.filtros.anio || r.anio === state.filtros.anio) &&
+        (!excluirFiltro || excluirFiltro === "mes" || !state.filtros.mes || r.mes === state.filtros.mes) &&
+        (!excluirFiltro || excluirFiltro === "fecha" || !state.filtros.fecha || String(r.fecha) === state.filtros.fecha) &&
+        (!excluirFiltro || excluirFiltro === "monte_origen" || !state.filtros.monte_origen || r.monte_origen === state.filtros.monte_origen) &&
+        (!excluirFiltro || excluirFiltro === "producto" || !state.filtros.producto || r.producto === state.filtros.producto) &&
+        (!excluirFiltro || excluirFiltro === "empresa" || !state.filtros.empresa || r.empresa === state.filtros.empresa)
+      );
+    }
+
+    function valoresUnicos(campo, excluirFiltro) {
+      const valores = [...new Set(
+        registrosParaOpciones(excluirFiltro)
+          .map(r => r[campo])
+          .filter(v => v !== null && v !== undefined && String(v).trim() !== "")
+      )];
+
+      if (campo === "anio") return valores.sort((a, b) => Number(b) - Number(a));
+      if (campo === "mes") {
+        return valores.sort((a, b) => (mesesOrden[normalizarTexto(a)] || 99) - (mesesOrden[normalizarTexto(b)] || 99));
+      }
+      if (campo === "fecha") {
+        return valores.sort((a, b) => (parseFecha(b)?.getTime() || 0) - (parseFecha(a)?.getTime() || 0));
+      }
+      return valores.sort((a, b) => String(a).localeCompare(String(b), "es"));
+    }
+
+    function cargarSelect(select, valores, seleccion, etiquetaTodos, formateador = v => v) {
+      const valorAnterior = seleccion ?? "";
+      select.innerHTML = `<option value="">${escapeHTML(etiquetaTodos)}</option>` +
+        valores.map(v => `<option value="${escapeHTML(v)}">${escapeHTML(formateador(v))}</option>`).join("");
+
+      if (valores.includes(valorAnterior)) {
+        select.value = valorAnterior;
+      } else {
+        select.value = "";
+      }
+    }
+
+    function refrescarFiltros() {
+      cargarSelect(els.fAnio, valoresUnicos("anio", "anio"), state.filtros.anio, "Todos los años");
+      state.filtros.anio = els.fAnio.value;
+
+      cargarSelect(els.fMes, valoresUnicos("mes", "mes"), state.filtros.mes, "Todos los meses");
+      state.filtros.mes = els.fMes.value;
+
+      cargarSelect(els.fFecha, valoresUnicos("fecha", "fecha"), state.filtros.fecha, "Todas las fechas", formatearFecha);
+      state.filtros.fecha = els.fFecha.value;
+
+      cargarSelect(els.fMonte, valoresUnicos("monte_origen", "monte_origen"), state.filtros.monte_origen, "Todos los montes");
+      state.filtros.monte_origen = els.fMonte.value;
+
+      cargarSelect(els.fProducto, valoresUnicos("producto", "producto"), state.filtros.producto, "Todos los productos");
+      state.filtros.producto = els.fProducto.value;
+
+      cargarSelect(els.fEmpresa, valoresUnicos("empresa", "empresa"), state.filtros.empresa, "Todas las empresas");
+      state.filtros.empresa = els.fEmpresa.value;
+    }
+
+    function aplicarFiltros() {
+      return state.datos
+        .filter(r =>
+          (!state.filtros.anio || r.anio === state.filtros.anio) &&
+          (!state.filtros.mes || r.mes === state.filtros.mes) &&
+          (!state.filtros.fecha || String(r.fecha) === state.filtros.fecha) &&
+          (!state.filtros.monte_origen || r.monte_origen === state.filtros.monte_origen) &&
+          (!state.filtros.producto || r.producto === state.filtros.producto) &&
+          (!state.filtros.empresa || r.empresa === state.filtros.empresa)
+        )
+        .sort((a, b) => {
+          const fa = parseFecha(a.fecha_creado || a.fecha)?.getTime() || 0;
+          const fb = parseFecha(b.fecha_creado || b.fecha)?.getTime() || 0;
+          return fb - fa;
+        });
+    }
+
+
+
+    function obtenerInfoTendencia(valores) {
+      const n = valores.length;
+
+      if (n < 2) {
+        return { pendiente: 0, texto: "Sin variación suficiente" };
+      }
+
+      let sumaX = 0;
+      let sumaY = 0;
+      let sumaXY = 0;
+      let sumaX2 = 0;
+
+      valores.forEach((valor, indice) => {
+        sumaX += indice;
+        sumaY += valor;
+        sumaXY += indice * valor;
+        sumaX2 += indice * indice;
+      });
+
+      const denominador = n * sumaX2 - sumaX * sumaX;
+
+      if (denominador === 0) {
+        return { pendiente: 0, texto: "Estable" };
+      }
+
+      const pendiente = (n * sumaXY - sumaX * sumaY) / denominador;
+
+      // Umbral pequeño para evitar clasificar variaciones mínimas como ascenso/descenso.
+      const umbral = 0.0001;
+
+      let texto = "Estable";
+      if (pendiente > umbral) texto = "Ascenso";
+      if (pendiente < -umbral) texto = "Descenso";
+
+      return { pendiente, texto };
+    }
+
+    function calcularTendenciaLineal(valores) {
+      const n = valores.length;
+
+      if (n === 0) return [];
+      if (n === 1) return [valores[0]];
+
+      let sumaX = 0;
+      let sumaY = 0;
+      let sumaXY = 0;
+      let sumaX2 = 0;
+
+      valores.forEach((valor, indice) => {
+        sumaX += indice;
+        sumaY += valor;
+        sumaXY += indice * valor;
+        sumaX2 += indice * indice;
+      });
+
+      const denominador = n * sumaX2 - sumaX * sumaX;
+
+      if (denominador === 0) {
+        return valores.map(() => sumaY / n);
+      }
+
+      const pendiente = (n * sumaXY - sumaX * sumaY) / denominador;
+      const intercepto = (sumaY - pendiente * sumaX) / n;
+
+      return valores.map((_, indice) => pendiente * indice + intercepto);
+    }
+
+    function actualizarSelectorProductoGrafica(registros) {
+      const productos = [...new Set(
+        registros
+          .map(r => r.producto)
+          .filter(producto => String(producto ?? "").trim() !== "")
+      )].sort((a, b) => String(a).localeCompare(String(b), "es"));
+
+      const productoAnterior = state.productoGrafica;
+
+      // Sin productos disponibles
+      if (productos.length === 0) {
+        state.productoGrafica = "";
+        els.fProductoGrafica.innerHTML = `<option value="">Sin productos disponibles</option>`;
+        els.fProductoGrafica.disabled = true;
+        return;
+      }
+
+      // Un único producto: se muestra solamente ese producto y queda fijo.
+      if (productos.length === 1) {
+        state.productoGrafica = productos[0];
+        els.fProductoGrafica.innerHTML =
+          `<option value="${escapeHTML(productos[0])}">${escapeHTML(productos[0])}</option>`;
+        els.fProductoGrafica.value = productos[0];
+        els.fProductoGrafica.disabled = true;
+        return;
+      }
+
+      // Dos o más productos: habilita la selección y ofrece "Todos".
+      els.fProductoGrafica.disabled = false;
+      els.fProductoGrafica.innerHTML =
+        `<option value="">Todos los productos disponibles</option>` +
+        productos.map(producto =>
+          `<option value="${escapeHTML(producto)}">${escapeHTML(producto)}</option>`
+        ).join("");
+
+      if (productos.includes(productoAnterior)) {
+        state.productoGrafica = productoAnterior;
+        els.fProductoGrafica.value = productoAnterior;
+      } else {
+        state.productoGrafica = "";
+        els.fProductoGrafica.value = "";
+      }
+    }
+
+    function renderizarGrafica(registros) {
+      actualizarSelectorProductoGrafica(registros);
+
+      const validos = registros
+        .filter(r =>
+          !esAnulado(r) &&
+          r.densidad !== null &&
+          (!state.productoGrafica || r.producto === state.productoGrafica)
+        )
+        .sort((a, b) => {
+          const fa = parseFecha(a.fecha_creado || a.fecha)?.getTime() || 0;
+          const fb = parseFecha(b.fecha_creado || b.fecha)?.getTime() || 0;
+          return fa - fb;
+        });
+
+      if (!validos.length) {
+        els.chartText.textContent = "0 registros válidos · Promedio: — · Tendencia: —";
+      }
+
+      if (graficaDensidad) {
+        graficaDensidad.destroy();
+        graficaDensidad = null;
+      }
+
+      if (!window.Chart || !validos.length) return;
+
+      const etiquetas = validos.map(r => [
+        `Remito ${r.remito_origen || "—"}`,
+        r.producto || "Sin producto",
+        r.contratista_cosecha || "Sin contratista"
+      ]);
+
+      const valores = validos.map(r => r.densidad);
+      const promedioGrafica = valores.reduce((acum, valor) => acum + valor, 0) / valores.length;
+      const tendencia = obtenerInfoTendencia(valores);
+      const minimo = Math.max(0, Math.min(...valores, promedioGrafica) - 0.02);
+      const maximo = Math.min(1.2, Math.max(...valores, promedioGrafica) + 0.02);
+
+      els.chartText.textContent =
+        `${formatearNumero(validos.length, 0)} registro${validos.length === 1 ? "" : "s"} válido${validos.length === 1 ? "" : "s"} · ` +
+        `Promedio: ${formatearNumero(promedioGrafica, 3)} · Tendencia: ${tendencia.texto}`;
+
+      graficaDensidad = new Chart(els.graficaDensidad, {
+        type: "line",
+        data: {
+          labels: etiquetas,
+          datasets: [
+            {
+              label: "Densidad",
+              data: valores,
+              borderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              tension: 0.2
+            },
+            {
+              label: "Tendencia lineal",
+              data: calcularTendenciaLineal(valores),
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              borderDash: [7, 5],
+              tension: 0
+            },
+            {
+              label: `Promedio (${formatearNumero(promedioGrafica, 3)})`,
+              data: valores.map(() => promedioGrafica),
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              borderDash: [3, 4],
+              tension: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "nearest",
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: "#d7e2e8",
+                usePointStyle: true
+              }
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const etiqueta = items[0]?.label;
+                  return Array.isArray(etiqueta) ? etiqueta.join(" · ") : etiqueta;
+                },
+                label: (context) => `${context.dataset.label}: ${formatearNumero(context.parsed.y, 3)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                autoSkip: true,
+                maxTicksLimit: 16,
+                maxRotation: 0,
+                minRotation: 0,
+                color: "#aebec8"
+              },
+              grid: {
+                color: "rgba(49, 70, 84, .45)"
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: "Densidad",
+                color: "#d7e2e8"
+              },
+              min: minimo,
+              max: maximo,
+              ticks: {
+                color: "#aebec8",
+                callback: (value) => formatearNumero(value, 3)
+              },
+              grid: {
+                color: "rgba(49, 70, 84, .65)"
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderizarResumen(registros) {
+      const grupos = new Map();
+
+      registros
+        .filter(r => !esAnulado(r) && r.densidad !== null)
+        .forEach(r => {
+          const clave = [r.anio, r.mes, r.monte_origen, r.producto].join("¦");
+
+          if (!grupos.has(clave)) {
+            grupos.set(clave, {
+              anio: r.anio || "—",
+              mes: r.mes || "—",
+              monte_origen: r.monte_origen || "—",
+              producto: r.producto || "—",
+              cantidad: 0,
+              sumaDensidad: 0
+            });
+          }
+
+          const grupo = grupos.get(clave);
+          grupo.cantidad += 1;
+          grupo.sumaDensidad += r.densidad;
+        });
+
+      const resumen = [...grupos.values()]
+        .map(g => ({ ...g, promedio: g.sumaDensidad / g.cantidad }))
+        .sort((a, b) => {
+          const anioA = Number(a.anio) || 0;
+          const anioB = Number(b.anio) || 0;
+          if (anioA !== anioB) return anioB - anioA;
+
+          const mesA = mesesOrden[normalizarTexto(a.mes)] || 99;
+          const mesB = mesesOrden[normalizarTexto(b.mes)] || 99;
+          if (mesA !== mesB) return mesB - mesA;
+
+          const monte = a.monte_origen.localeCompare(b.monte_origen, "es");
+          return monte !== 0 ? monte : a.producto.localeCompare(b.producto, "es");
+        });
+
+      const remitosValidos = resumen.reduce((acum, g) => acum + g.cantidad, 0);
+      const promedioGeneral = remitosValidos
+        ? resumen.reduce((acum, g) => acum + g.sumaDensidad, 0) / remitosValidos
+        : null;
+
+      els.resumenBody.innerHTML = resumen.map(g => `
+        <tr>
+          <td>${escapeHTML(g.anio)}</td>
+          <td>${escapeHTML(g.mes)}</td>
+          <td>${escapeHTML(g.monte_origen)}</td>
+          <td>${escapeHTML(g.producto)}</td>
+          <td class="num">${formatearNumero(g.cantidad, 0)}</td>
+          <td class="num">${formatearNumero(g.promedio, 3)}</td>
+        </tr>
+      `).join("");
+
+      els.resumenFoot.innerHTML = `
+        <tr>
+          <td colspan="4">PROMEDIO GENERAL DE LOS FILTROS</td>
+          <td class="num">${formatearNumero(remitosValidos, 0)}</td>
+          <td class="num">${promedioGeneral === null ? "—" : formatearNumero(promedioGeneral, 3)}</td>
+        </tr>
+      `;
+
+      els.summaryText.textContent = `${formatearNumero(resumen.length, 0)} grupo${resumen.length === 1 ? "" : "s"}`;
+      els.summaryEmpty.hidden = resumen.length > 0;
+    }
+
+    function renderizar() {
+      const registros = aplicarFiltros();
+      const registrosValidos = registros.filter(r => !esAnulado(r) && r.densidad !== null);
+      const anulados = registros.filter(esAnulado).length;
+      const promedio = registrosValidos.length
+        ? registrosValidos.reduce((acum, r) => acum + r.densidad, 0) / registrosValidos.length
+        : null;
+
+      els.kpiRegistros.textContent = formatearNumero(registros.length, 0);
+      els.kpiPromedio.textContent = promedio === null ? "—" : formatearNumero(promedio, 3);
+      els.resultsText.textContent = `${formatearNumero(registros.length, 0)} registro${registros.length === 1 ? "" : "s"}`;
+
+      renderizarResumen(registros);
+      renderizarGrafica(registros);
+
+      els.body.innerHTML = registros.map(r => `
+        <tr>
+          <td>${escapeHTML(formatearFecha(r.fecha))}</td>
+          <td>${escapeHTML(obtenerHora(r.fecha_creado))}</td>
+          <td class="num">${escapeHTML(r.remito_origen)}</td>
+          <td class="num">${escapeHTML(r.remito_sistema)}</td>
+          <td>${escapeHTML(r.monte_origen)}</td>
+          <td>${escapeHTML(r.producto)}</td>
+          <td>${escapeHTML(r.contratista_cosecha)}</td>
+          <td class="num">${r.densidad === null ? "—" : formatearNumero(r.densidad, 3)}</td>
+          <td class="center">${escapeHTML(r.anulado)}</td>
+        </tr>
+      `).join("");
+
+      els.foot.innerHTML = `
+        <tr>
+          <td colspan="7">PROMEDIO DE DENSIDAD (no anulados)</td>
+          <td class="num">${promedio === null ? "—" : formatearNumero(promedio, 3)}</td>
+          <td class="center">${formatearNumero(registrosValidos.length, 0)} válidos</td>
+        </tr>
+      `;
+
+      els.empty.hidden = registros.length > 0;
+    }
+
+    function actualizarDesdeCambios() {
+      state.filtros.anio = els.fAnio.value;
+      state.filtros.mes = els.fMes.value;
+      state.filtros.fecha = els.fFecha.value;
+      state.filtros.monte_origen = els.fMonte.value;
+      state.filtros.producto = els.fProducto.value;
+      state.filtros.empresa = els.fEmpresa.value;
+      refrescarFiltros();
+      renderizar();
+    }
+
+    [els.fAnio, els.fMes, els.fFecha, els.fMonte, els.fProducto, els.fEmpresa]
+      .forEach(select => select.addEventListener("change", actualizarDesdeCambios));
+
+    els.btnLimpiar.addEventListener("click", () => {
+      Object.keys(state.filtros).forEach(clave => state.filtros[clave] = "");
+      state.productoGrafica = "";
+      refrescarFiltros();
+      renderizar();
+    });
+
+    els.fProductoGrafica.addEventListener("change", () => {
+      state.productoGrafica = els.fProductoGrafica.value;
+      renderizarGrafica(aplicarFiltros());
+    });
+
+
+    function aplicarFiltrosIniciales() {
+      const hoy = new Date();
+      const anioActual = String(hoy.getFullYear());
+
+      const mesesES = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
+      ];
+
+      const mesActual = mesesES[hoy.getMonth()];
+
+      const existeAnio = state.datos.some(r => r.anio === anioActual);
+      const existeMes = state.datos.some(
+        r => r.anio === anioActual && normalizarTexto(r.mes) === normalizarTexto(mesActual)
+      );
+
+      if (existeAnio) state.filtros.anio = anioActual;
+      if (existeMes) state.filtros.mes = mesActual;
+    }
+
+    async function iniciar() {
+      try {
+        const respuesta = await fetch(URL_DATOS, { cache: "no-store" });
+
+        if (!respuesta.ok) {
+          throw new Error(`No se pudo leer datos.json (HTTP ${respuesta.status}).`);
+        }
+
+        const bruto = await respuesta.json();
+        const lista = Array.isArray(bruto) ? bruto : (bruto.data || bruto.registros || []);
+
+        if (!Array.isArray(lista)) {
+          throw new Error("El archivo JSON no contiene una lista válida de registros.");
+        }
+
+        state.datos = lista.map(normalizarRegistro);
+        aplicarFiltrosIniciales();
+        refrescarFiltros();
+        renderizar();
+
+        els.status.innerHTML = `Datos cargados: <strong>${formatearNumero(state.datos.length, 0)}</strong> registros`;
+      } catch (error) {
+        els.status.innerHTML = `<span class="error">No fue posible cargar datos.json</span>`;
+        els.body.innerHTML = "";
+        els.foot.innerHTML = "";
+        els.empty.hidden = false;
+        els.empty.innerHTML = `
+          <div class="error">
+            <strong>Error al leer la fuente de datos.</strong><br>
+            ${escapeHTML(error.message)}<br><br>
+            Recomendación: subí <code>datos.json</code> al mismo repositorio de GitHub Pages
+            y cambiá <code>URL_DATOS</code> por <code>"./datos.json"</code>.
+          </div>
+        `;
+      }
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
