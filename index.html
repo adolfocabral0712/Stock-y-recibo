@@ -842,15 +842,18 @@ td{
 
 
 /* Vista integrada: Densidades */
-#page-densidades{
+#page-densidades,
+#page-tiempos-descarga{
   width:100%;
 }
 
-#page-densidades .page-title{
+#page-densidades .page-title,
+#page-tiempos-descarga .page-title{
   margin-bottom:8px;
 }
 
-.density-embed-card{
+.density-embed-card,
+.download-embed-card{
   width:100%;
   min-height:calc(100vh - 230px);
   padding:0;
@@ -858,7 +861,8 @@ td{
   background:#101820;
 }
 
-.density-embed{
+.density-embed,
+.download-embed{
   display:block;
   width:100%;
   height:calc(100vh - 240px);
@@ -868,12 +872,14 @@ td{
 }
 
 @media(max-width:650px){
-  .density-embed-card{
+  .density-embed-card,
+  .download-embed-card{
     min-height:calc(100vh - 175px);
     border-radius:14px;
   }
 
-  .density-embed{
+  .density-embed,
+  .download-embed{
     height:calc(100vh - 185px);
     min-height:1180px;
   }
@@ -1846,6 +1852,7 @@ function renderDatos(datos){
       <button class="tab-btn" data-page="page-trozas" type="button">🪵 Trozas</button>
       <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
       <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
+      <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>
     </div>
 
     <section class="dashboard-page active" id="page-resumen">
@@ -1903,6 +1910,12 @@ function renderDatos(datos){
     <section class="dashboard-page" id="page-densidades">
       <div class="card density-embed-card">
         <iframe class="density-embed" src="./densidades.html" title="Dashboard de densidades" loading="lazy"></iframe>
+      </div>
+    </section>
+
+    <section class="dashboard-page" id="page-tiempos-descarga">
+      <div class="card download-embed-card">
+        <iframe class="download-embed" src="./tiempos-descarga.html" title="Dashboard de tiempos de descarga" loading="lazy"></iframe>
       </div>
     </section>`;
   document.getElementById('empty').style.display='none'; document.getElementById('dash').style.display='block';
@@ -1982,7 +1995,8 @@ function construirVistasIniciales(){
     <button class="tab-btn" data-page="page-rolos" type="button">🚚 Rolos</button>
     <button class="tab-btn" data-page="page-trozas" type="button">🪵 Trozas</button>
     <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
-    <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>`;
+    <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
+    <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>`;
 
   dash.innerHTML = '';
   dash.appendChild(tabs);
@@ -2031,6 +2045,23 @@ function construirVistasIniciales(){
   tarjetaDensidades.appendChild(iframeDensidades);
   paginaDensidades.appendChild(tarjetaDensidades);
   dash.appendChild(paginaDensidades);
+
+  const paginaTiempos = document.createElement('section');
+  paginaTiempos.id = 'page-tiempos-descarga';
+  paginaTiempos.className = 'dashboard-page';
+
+  const tarjetaTiempos = document.createElement('div');
+  tarjetaTiempos.className = 'card download-embed-card';
+
+  const iframeTiempos = document.createElement('iframe');
+  iframeTiempos.className = 'download-embed';
+  iframeTiempos.src = './tiempos-descarga.html';
+  iframeTiempos.title = 'Dashboard de tiempos de descarga';
+  iframeTiempos.loading = 'lazy';
+
+  tarjetaTiempos.appendChild(iframeTiempos);
+  paginaTiempos.appendChild(tarjetaTiempos);
+  dash.appendChild(paginaTiempos);
 
   activarNavegacionDashboard();
 }

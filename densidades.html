@@ -487,7 +487,7 @@
         <canvas id="graficaDensidad"></canvas>
       </div>
       <div class="chart-note">
-        
+        Eje X: Remito origen · Producto · Contratista de cosecha. Eje Y: Densidad. Se excluyen remitos anulados y registros sin densidad.
       </div>
     </section>
   </main>
@@ -721,9 +721,19 @@
           (!state.filtros.empresa || r.empresa === state.filtros.empresa)
         )
         .sort((a, b) => {
-          const fa = parseFecha(a.fecha_creado || a.fecha)?.getTime() || 0;
-          const fb = parseFecha(b.fecha_creado || b.fecha)?.getTime() || 0;
-          return fb - fa;
+          // Detalle ordenado por REMITO SISTEMA, de mayor a menor.
+          const remitoA = parseNumero(a.remito_sistema);
+          const remitoB = parseNumero(b.remito_sistema);
+
+          const valorA = remitoA === null ? -Infinity : remitoA;
+          const valorB = remitoB === null ? -Infinity : remitoB;
+
+          if (valorA !== valorB) return valorB - valorA;
+
+          // Si dos remitos tienen el mismo número, prioriza el más reciente.
+          const fechaA = parseFecha(a.fecha_creado || a.fecha)?.getTime() || 0;
+          const fechaB = parseFecha(b.fecha_creado || b.fecha)?.getTime() || 0;
+          return fechaB - fechaA;
         });
     }
 
