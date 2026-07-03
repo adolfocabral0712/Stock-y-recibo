@@ -1845,6 +1845,7 @@ function renderDatos(datos){
       <button class="tab-btn" data-page="page-rolos" type="button">🚚 Rolos</button>
       <button class="tab-btn" data-page="page-trozas" type="button">🪵 Trozas</button>
       <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
+      <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
     </div>
 
     <section class="dashboard-page active" id="page-resumen">
@@ -1896,6 +1897,12 @@ function renderDatos(datos){
           <div class="chart-wrap contract-chart-wrap"><canvas id="chartContratoUPM"></canvas></div>
         </section>
         <section class="card span12">${tableHtml('Entregas FAS a UPM PDT · año actual con acumulado histórico', r.contrato, 999)}</section>
+      </div>
+    </section>
+
+    <section class="dashboard-page" id="page-densidades">
+      <div class="card density-embed-card">
+        <iframe class="density-embed" src="./densidades.html" title="Dashboard de densidades" loading="lazy"></iframe>
       </div>
     </section>`;
   document.getElementById('empty').style.display='none'; document.getElementById('dash').style.display='block';
