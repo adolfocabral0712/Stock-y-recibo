@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · Tiempos Descarga Planta FAS</title>
+
+  <!-- Gráficos. Requiere conexión a Internet para cargar Chart.js. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121c2f;
+      --panel-2: #17243b;
+      --line: #2a3b57;
+      --text: #e8eef8;
+      --muted: #9aacc6;
+      --accent: #39d0ba;
+      --accent-2: #6ca8ff;
+      --warning: #ffbd59;
+      --danger: #ff7373;
+      --shadow: 0 14px 36px rgba(0,0,0,.22);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0 0, rgba(57,208,186,.08), transparent 32%),
+        radial-gradient(circle at 100% 0, rgba(108,168,255,.10), transparent 34%),
+        var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .wrap { max-width: 1700px; margin: 0 auto; padding: 24px; }
+    .topbar {
+      display: flex; gap: 20px; align-items: flex-start; justify-content: space-between;
+      padding: 6px 0 22px;
+    }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.6px; }
+    .subtitle { margin-top: 8px; color: var(--muted); font-size: 14px; }
+    .status {
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+      padding: 10px 13px; border: 1px solid var(--line); border-radius: 999px;
+      color: var(--muted); background: rgba(18,28,47,.72); font-size: 13px;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 12px currentColor; }
+
+    .notice {
+      border: 1px solid rgba(255,189,89,.45); background: rgba(255,189,89,.10);
+      border-radius: 12px; padding: 13px 15px; color: #ffe0a6; margin-bottom: 18px;
+      display: none; font-size: 14px;
+    }
+    .notice.error { border-color: rgba(255,115,115,.50); background: rgba(255,115,115,.11); color: #ffd0d0; }
+
+    .filters {
+      display: grid; grid-template-columns: repeat(4, minmax(155px, 1fr)) auto;
+      gap: 12px; padding: 16px; background: rgba(18,28,47,.92);
+      border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    label { display: block; color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+    select, input, button {
+      width: 100%; min-height: 39px; border-radius: 9px; font: inherit;
+    }
+    select, input {
+      color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+      padding: 8px 10px; outline: none;
+    }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(57,208,186,.12); }
+    button {
+      align-self: end; color: #06221f; background: var(--accent); border: 0;
+      padding: 8px 14px; cursor: pointer; font-weight: 700;
+    }
+    button:hover { filter: brightness(1.07); }
+
+    .kpis {
+      display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 14px;
+      margin-bottom: 18px;
+    }
+    .kpi, .card {
+      background: rgba(18,28,47,.92); border: 1px solid var(--line); border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .kpi {
+      padding: 17px;
+      min-height: 118px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .kpi-title { color: var(--muted); font-size: 13px; }
+    .kpi-value {
+      margin-top: 9px;
+      font-weight: 750;
+      font-size: clamp(27px, 3vw, 38px);
+      line-height: 1;
+      text-align: center;
+    }
+    .kpi-note {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+    .accent { color: var(--accent); }
+    .blue { color: var(--accent-2); }
+    .warn { color: var(--warning); }
+
+    .grid {
+      display: grid; grid-template-columns: 1fr; gap: 18px; margin-bottom: 18px;
+    }
+    .card { padding: 16px; overflow: hidden; }
+    .card h2 { margin: 0 0 2px; font-size: 16px; }
+    .card .card-subtitle { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+    .chart-box { position: relative; height: 330px; }
+
+
+    .table-card { padding: 0; }
+    .table-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 16px 12px;
+    }
+    .table-head h2 { margin: 0; font-size: 16px; }
+    .table-info { color: var(--muted); font-size: 12px; text-align: right; }
+    .table-scroll { overflow: auto; max-height: 560px; border-top: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+    thead { position: sticky; top: 0; z-index: 2; }
+    th {
+      text-align: left; color: #c8d5e9; background: #1a2942; padding: 11px 12px;
+      border-bottom: 1px solid var(--line); font-weight: 700;
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid rgba(42,59,87,.64); color: #e3eaf5; }
+    tbody tr:hover { background: rgba(108,168,255,.065); }
+    .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+    .pagination {
+      display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 13px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .pagination button { width: auto; min-height: 34px; padding: 6px 12px; }
+    .pagination button:disabled { opacity: .45; cursor: default; }
+    .page-label { color: var(--muted); font-size: 12px; }
+
+    .matrix-table th,
+    .matrix-table td { text-align: center; }
+    .matrix-table th:first-child,
+    .matrix-table td:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: #17243b;
+      font-weight: 700;
+    }
+    .matrix-table thead th:first-child {
+      z-index: 3;
+      background: #1a2942;
+    }
+    .matrix-table td.matrix-value { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .matrix-table td.matrix-warning {
+      color: #ffd98a;
+      background: rgba(255,189,89,.17);
+      font-weight: 700;
+    }
+    .matrix-table td.matrix-danger {
+      color: #ffd0d0;
+      background: rgba(255,115,115,.18);
+      font-weight: 700;
+    }
+    .matrix-table td.matrix-empty { color: #71839f; }
+
+    @media (max-width: 1050px) {
+      .filters { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .wrap { padding: 14px; }
+      .topbar { flex-direction: column; gap: 12px; }
+      .filters, .kpis { grid-template-columns: 1fr 1fr; }
+      .filters button { grid-column: span 2; }
+      .chart-box { height: 245px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <div>
+        <h1>Dashboard · Tiempos Descarga Planta FAS</h1>
+        <div class="subtitle" id="updatedText">Cargando información...</div>
+      </div>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Conectando</span></div>
+    </header>
+
+    <div class="notice" id="notice"></div>
+
+    <section class="filters">
+      <div><label for="yearFilter">Año</label><select id="yearFilter"><option value="">Todos</option></select></div>
+      <div><label for="monthFilter">Mes</label><select id="monthFilter"><option value="">Todos</option></select></div>
+      <div><label for="weekFilter">Semana</label><select id="weekFilter"><option value="">Todas</option></select></div>
+      <div><label for="dateFilter">FechaRto</label><select id="dateFilter" aria-label="Filtrar por FechaRto"><option value="">Todas</option></select></div>
+      <button id="clearFilters" type="button">Limpiar filtros</button>
+    </section>
+
+    <section class="kpis">
+      <article class="kpi"><div class="kpi-title">Descargas en el período</div><div class="kpi-value accent" id="kpiRecords">—</div><div class="kpi-note" id="kpiRecordsNote">—</div></article>
+      <article class="kpi"><div class="kpi-title">Demora promedio en el período</div><div class="kpi-value warn" id="kpiDepots">—</div><div class="kpi-note" id="kpiDelayNote">Según filtros aplicados</div></article>
+      <article class="kpi"><div class="kpi-title">Días con descargas</div><div class="kpi-value" id="kpiDays">—</div><div class="kpi-note" id="kpiRange">—</div></article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Actividad por fecha · Frimosa</h2>
+        <p class="card-subtitle"></p>
+        <div class="chart-box"><canvas id="dateChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-head">
+        <div>
+          <h2>Demora promedio - Frimosa</h2>
+          <div class="card-subtitle" id="matrixInfo"></div>
+        </div>
+
+      </div>
+      <div class="table-scroll">
+        <table class="matrix-table">
+          <thead id="matrixHead"></thead>
+          <tbody id="matrixBody"></tbody>
+        </table>
+        <div class="empty" id="matrixEmpty" hidden>No hay demoras calculables para Frimosa.</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+/* ==========================================================
+   CONFIGURACIÓN
+   Mantener el parámetro dl=0. Dropbox responde el archivo JSON
+   y el script agrega un parámetro anti-caché en cada carga.
+   ========================================================== */
+const URL_JSON = "https://dl.dropbox.com/scl/fi/kud6q42l7ayvrm3tkje4c/RECIBO-RESUMENES.json?rlkey=a9hv1g2x14t91al141ado7owh&dl=0";
+const PAGE_SIZE = 100;
+const MAX_TABLE_COLUMNS = 12;
+
+let allRecords = [];
+let preparedRecords = [];
+let filteredRecords = [];
+let columns = [];
+let currentPage = 1;
+let dateChart, depotChart;
+let filterTimer = null;
+let currentFilterVersion = 0;
+let useCurrentWeekForInitialChart = true;
+
+const $ = id => document.getElementById(id);
+
+function normalize(value) {
+  return String(value ?? "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findKey(record, aliases) {
+  const keys = Object.keys(record || {});
+  for (const alias of aliases) {
+    const key = keys.find(k => normalize(k) === normalize(alias));
+    if (key) return key;
+  }
+  return null;
+}
+
+function getValue(record, aliases) {
+  const key = findKey(record, aliases);
+  return key ? record[key] : "";
+}
+
+function cleanValue(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+
+const MONTHS_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"
+];
+
+function normalizeYear(value, record = null) {
+  const raw = cleanValue(value).trim();
+
+  // Año válido directo: 2016, 2026, etc.
+  const direct = raw.match(/^(19|20)\d{2}$/);
+  if (direct) return direct[0];
+
+  // Si el campo Año tiene un valor inválido, intenta obtenerlo desde la fecha.
+  if (record) {
+    const date = parseDate(record);
+    if (date && date.getFullYear() >= 1900 && date.getFullYear() <= 2100) {
+      return String(date.getFullYear());
+    }
+  }
+
+  // Nunca muestra números como 42360 ni textos como "Año" en el selector.
+  return "";
+}
+
+function normalizeMonth(value, record = null) {
+  const raw = cleanValue(value).trim();
+  if (!raw && record) {
+    const date = parseDate(record);
+    return date ? MONTHS_ES[date.getMonth()] : "";
+  }
+
+  const normalized = normalize(raw);
+
+  // Meses escritos: abril / ABRIL / Abril => abril
+  const monthIndex = MONTHS_ES.findIndex(month => normalize(month) === normalized);
+  if (monthIndex >= 0) return MONTHS_ES[monthIndex];
+
+  // Meses numéricos: 1, 01, 12 => enero, diciembre
+  const numeric = Number(raw);
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 12) {
+    return MONTHS_ES[numeric - 1];
+  }
+
+  // Intentar extraer mes desde la fecha, si el campo no es reconocible.
+  if (record) {
+    const date = parseDate(record);
+    return date ? MONTHS_ES[date.getMonth()] : "";
+  }
+
+  return "";
+}
+
+function formatMonth(value) {
+  const month = cleanValue(value).trim();
+  return month ? month.charAt(0).toUpperCase() + month.slice(1) : "";
+}
+
+
+function titleCaseDepot(value) {
+  return cleanValue(value)
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("es-UY")
+    .replace(/(^|[\s\-/&.])([a-záéíóúüñ])/g, (match, separator, letter) =>
+      separator + letter.toLocaleUpperCase("es-UY")
+    );
+}
+
+function normalizeDepot(value) {
+  const raw = cleanValue(value).trim().replace(/\s+/g, " ");
+  if (!raw) return "";
+
+  const key = normalize(raw);
+
+  // Casos frecuentes que se desean mostrar siempre con un único nombre.
+  const depotAliases = {
+    "frimosa": "Frimosa"
+  };
+
+  return depotAliases[key] || titleCaseDepot(raw);
+}
+
+
+function isValidPlate(value) {
+  const plate = cleanValue(value).trim();
+
+  // Excluye vacíos, 0, 0.0, 00, etc.
+  // No elimina el registro: solo evita contarlo como una matrícula válida.
+  if (!plate) return false;
+  if (/^0+([.,]0+)?$/.test(plate)) return false;
+
+  return true;
+}
+
+
+function getISOWeek(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return String(Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7));
+}
+
+function normalizeWeek(value, record = null) {
+  const raw = cleanValue(value).trim();
+  const direct = raw.match(/^\d{1,2}$/);
+  if (direct) {
+    const week = Number(direct[0]);
+    if (week >= 1 && week <= 53) return String(week);
+  }
+
+  const date = record ? parseDate(record) : null;
+  return date ? getISOWeek(date) : "";
+}
+
+function excelSerialToDate(serial) {
+  const number = Number(serial);
+  if (!Number.isFinite(number) || number < 1 || number > 100000) return null;
+
+  // Excel para Windows usa 30/12/1899 como referencia práctica.
+  const excelEpoch = new Date(1899, 11, 30);
+  const milliseconds = Math.round(number * 86400000);
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDate(record) {
+  const raw = cleanValue(getValue(record, ["FechaRto", "Fecha", "Fecha recepción", "Fecha evento", "FechaRTO"])).trim();
+  if (!raw) return null;
+
+  // Números seriales Excel, por ejemplo 46199.
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const excelDate = excelSerialToDate(raw);
+    if (excelDate) {
+      // FechaRto debe representar el día; se quita la hora si existiera.
+      return new Date(excelDate.getFullYear(), excelDate.getMonth(), excelDate.getDate());
+    }
+  }
+
+  // dd/mm/yyyy, dd-mm-yyyy y yyyy-mm-dd, con o sin hora
+  let m = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function parseExcelDateTime(value, fallbackDate = null) {
+  const raw = cleanValue(value).trim();
+  if (!raw) return null;
+
+  // Números como 46199.2531: fecha Excel + hora.
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const excelDate = excelSerialToDate(raw);
+    if (excelDate) return excelDate;
+  }
+
+  // Hora simple HH:mm o HH:mm:ss.
+  const time = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (time) {
+    const date = fallbackDate ? new Date(fallbackDate) : new Date(1899, 11, 30);
+    date.setHours(Number(time[1]), Number(time[2]), Number(time[3] || 0), 0);
+    return date;
+  }
+
+  // Fecha y hora legibles.
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateRto(record) {
+  const date = parseDate(record);
+  return date ? new Intl.DateTimeFormat("es-UY", {
+    day: "2-digit", month: "2-digit", year: "numeric"
+  }).format(date) : cleanValue(getValue(record, ["FechaRto", "Fecha", "Fecha recepción", "Fecha evento", "FechaRTO"]));
+}
+
+function formatTime(value, record) {
+  const time = parseExcelDateTime(value, parseDate(record));
+  return time ? new Intl.DateTimeFormat("es-UY", {
+    hour: "2-digit", minute: "2-digit", hour12: false
+  }).format(time) : cleanValue(value);
+}
+
+function getMinutesOfDay(value, record) {
+  const raw = cleanValue(value).trim();
+  if (!raw) return null;
+
+  // Valor serial de Excel: se usa solo la fracción decimal, que contiene la hora.
+  // Ejemplo: 46199.2531 -> 06:04 aproximadamente.
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const serial = Number(raw);
+    if (!Number.isFinite(serial)) return null;
+
+    const fractionalDay = ((serial % 1) + 1) % 1;
+    return Math.round(fractionalDay * 24 * 60) % (24 * 60);
+  }
+
+  // Hora simple HH:mm o HH:mm:ss.
+  const simpleTime = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (simpleTime) {
+    const hours = Number(simpleTime[1]);
+    const minutes = Number(simpleTime[2]);
+
+    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+      return hours * 60 + minutes;
+    }
+  }
+
+  // Fecha y hora en formato exportado desde Excel:
+  // 19/10/2024 17:35 o 19/10/2024 17:35:10.
+  const dateTimeUY = raw.match(
+    /^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/
+  );
+  if (dateTimeUY) {
+    const hours = Number(dateTimeUY[1]);
+    const minutes = Number(dateTimeUY[2]);
+
+    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
+      return hours * 60 + minutes;
+    }
+  }
+
+  // Último respaldo para formatos de fecha/hora reconocibles.
+  const parsed = parseExcelDateTime(raw, parseDate(record));
+  if (!parsed) return null;
+
+  return parsed.getHours() * 60 + parsed.getMinutes();
+}
+
+function getDurationMinutes(value) {
+  const raw = cleanValue(value).trim();
+  if (!raw) return null;
+
+  // Duración Excel serial: por ejemplo 0.0212 representa parte de un día.
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const serial = Number(raw);
+    if (!Number.isFinite(serial) || serial < 0) return null;
+
+    // Una duración suele ser menor a 1 día; se toma la fracción correspondiente.
+    return Math.round((serial % 1) * 24 * 60);
+  }
+
+  // Duración hh:mm o hh:mm:ss. Permite horas superiores a 23, por ser duración.
+  const duration = raw.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+  if (!duration) return null;
+
+  const hours = Number(duration[1]);
+  const minutes = Number(duration[2]);
+  const seconds = Number(duration[3] || 0);
+
+  if (minutes >= 60 || seconds >= 60) return null;
+  return Math.round(hours * 60 + minutes + seconds / 60);
+}
+
+function getDelayMinutes(record) {
+  // Prioridad 1: duración ya calculada en la planilla.
+  // En el origen aparece como Columna1, por ejemplo 00:30:31.
+  // Esto evita interpretar horarios antiguos incompletos como demoras de 8 o 9 horas.
+  const explicitDuration = getValue(record, [
+    "Demora", "Duración", "Duracion", "Tiempo descarga", "Columna1"
+  ]);
+  const explicitMinutes = getDurationMinutes(explicitDuration);
+
+  if (Number.isFinite(explicitMinutes) && explicitMinutes >= 0) {
+    return explicitMinutes;
+  }
+
+  // Prioridad 2: cálculo de respaldo con HoraRto y HoraSalida.
+  // HoraLlegada se conserva solamente para registros sin HoraRto.
+  const arrivalRaw = getValue(record, ["HoraRto", "Hora Rto", "HoraLlegada", "Hora llegada", "Llegada"]);
+  const departureRaw = getValue(record, ["HoraSalida", "Hora salida", "Salida"]);
+
+  const arrivalMinutes = getMinutesOfDay(arrivalRaw, record);
+  const departureMinutes = getMinutesOfDay(departureRaw, record);
+
+  if (arrivalMinutes === null || departureMinutes === null) return null;
+
+  let delay = departureMinutes - arrivalMinutes;
+  if (delay < 0) delay += 24 * 60;
+
+  return delay;
+}
+
+function formatDelay(record) {
+  const totalMinutes = getDelayMinutes(record);
+  if (totalMinutes === null) return "";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function dateLabel(date) {
+  return new Intl.DateTimeFormat("es-UY", { day: "2-digit", month: "short" }).format(date);
+}
+
+function fullDateLabel(date) {
+  return new Intl.DateTimeFormat("es-UY", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+}
+
+function setNotice(message = "", type = "") {
+  const n = $("notice");
+  n.textContent = message;
+  n.className = "notice" + (type ? " " + type : "");
+  n.style.display = message ? "block" : "none";
+}
+
+function setStatus(text, color) {
+  $("statusText").textContent = text;
+  $("statusDot").style.background = color;
+}
+
+function extractRecords(payload) {
+  if (Array.isArray(payload)) return payload;
+
+  if (payload && typeof payload === "object") {
+    const candidates = ["datos", "data", "registros", "records", "rows", "items"];
+    for (const key of candidates) {
+      if (Array.isArray(payload[key])) return payload[key];
+    }
+
+    const firstArray = Object.values(payload).find(value => Array.isArray(value));
+    if (firstArray) return firstArray;
+  }
+  return [];
+}
+
+function extractColumns(payload, records) {
+  if (payload && Array.isArray(payload.columnas) && payload.columnas.length) return payload.columnas;
+  const firstObject = records.find(row => row && !Array.isArray(row) && typeof row === "object");
+  if (firstObject) return Object.keys(firstObject);
+  return [];
+}
+
+function normalizeRows(records, sourceColumns) {
+  // El exportador puede generar:
+  // 1) objetos: {"Año": 2026, "Mes": "Julio"}
+  // 2) arreglos: [2026, "Julio", ...] junto a "columnas".
+  // Se transforma todo a objetos para que filtros y gráficos funcionen igual.
+  return records.map(row => {
+    if (Array.isArray(row)) {
+      return Object.fromEntries(sourceColumns.map((column, index) => [column, row[index] ?? ""]));
+    }
+    return (row && typeof row === "object") ? row : {};
+  });
+}
+
+function getFilters() {
+  return {
+    year: $("yearFilter").value,
+    month: $("monthFilter").value,
+    week: $("weekFilter").value,
+    date: $("dateFilter").value,
+    depot: "",
+    plate: "",
+    text: ""
+  };
+}
+
+function setSelectOptions(selectId, values, keepValue = true) {
+  const select = $(selectId);
+  const selected = keepValue ? select.value : "";
+  const unique = [...new Set(values.map(v => cleanValue(v).trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
+
+  select.innerHTML = '<option value="">Todos</option>' + unique
+    .map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)
+    .join("");
+
+  if (selected && unique.includes(selected)) {
+    select.value = selected;
+  } else {
+    select.value = "";
+  }
+
+  select.disabled = unique.length === 0;
+}
+
+function prepareRecords(records) {
+  // Precalcula los valores usados por filtros y gráficos UNA sola vez.
+  // Así no se vuelve a normalizar cada registro al escribir una matrícula.
+  return records.map((record, index) => {
+    const date = parseDate(record);
+    const rawYear = getValue(record, ["Año", "Ano", "Year"]);
+    const rawMonth = getValue(record, ["Mes", "Month"]);
+    const rawWeek = getValue(record, ["Semana", "Week"]);
+    const depotRaw = getValue(record, ["Depósito", "Deposito", "Depósito destino", "Geocerca"]);
+    const depot = normalizeDepot(depotRaw);
+    const plate = cleanValue(getValue(record, ["Matricula", "Matrícula", "Vehiculo", "Vehículo"])).trim();
+
+    return {
+      index,
+      record,
+      year: normalizeYear(rawYear, record),
+      month: normalizeMonth(rawMonth, record),
+      week: normalizeWeek(rawWeek, record),
+      depot,
+      plate,
+      plateNormalized: normalize(plate),
+      // Normalización de texto solo una vez, no en cada búsqueda.
+      searchText: normalize(Object.values(record || {}).map(cleanValue).join(" ")),
+      date,
+      dateKey: date
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+        : "",
+      delayMinutes: (() => {
+        const delay = getDelayMinutes(record);
+        // Para control operativo de descarga, demoras mayores a 4 horas se consideran
+        // inconsistentes y no ingresan a indicadores, gráficas ni promedios.
+        return Number.isFinite(delay) && delay <= 4 * 60 ? delay : null;
+      })()
+    };
+  });
+}
+
+function matchesPrepared(item, filters, ignoredFilter = "") {
+  return (ignoredFilter === "year" || !filters.year || item.year === filters.year) &&
+    (ignoredFilter === "month" || !filters.month || item.month === filters.month) &&
+    (ignoredFilter === "week" || !filters.week || item.week === filters.week) &&
+    (ignoredFilter === "date" || !filters.date || item.dateKey === filters.date) &&
+    (ignoredFilter === "depot" || !filters.depot || item.depot === filters.depot) &&
+    (ignoredFilter === "plate" || !filters.plate || item.plateNormalized.includes(filters.plate)) &&
+    (ignoredFilter === "text" || !filters.text || item.searchText.includes(filters.text));
+}
+
+function buildFilteredItems(filters) {
+  return preparedRecords.filter(item => matchesPrepared(item, filters));
+}
+
+function buildDependentOptions(filters) {
+  // Una pasada por selector; sobre datos ya preparados.
+  const forYear = [];
+  const forMonth = [];
+  const forWeek = [];
+  const forDepot = [];
+
+  for (const item of preparedRecords) {
+    if (matchesPrepared(item, filters, "year") && item.year) forYear.push(item.year);
+    if (matchesPrepared(item, filters, "month") && item.month) forMonth.push(item.month);
+    if (matchesPrepared(item, filters, "week") && item.week) forWeek.push(item.week);
+    if (matchesPrepared(item, filters, "depot") && item.depot) forDepot.push(item.depot);
+  }
+
+  return { forYear, forMonth, forWeek, forDepot };
+}
+
+function formatDateFilterOption(dateKey) {
+  const [year, month, day] = String(dateKey).split("-").map(Number);
+  if (!year || !month || !day) return dateKey;
+
+  return new Intl.DateTimeFormat("es-UY", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(year, month - 1, day));
+}
+
+function refreshDateFilter() {
+  const selectedDate = $("dateFilter").value;
+
+  // FechaRto depende de los filtros anteriores:
+  // Año, Mes y Semana. El dashboard se limita a Frimosa.
+  const baseFilters = {
+    ...getFilters(),
+    date: "",
+    depot: "Frimosa"
+  };
+
+  const dates = [...new Set(
+    preparedRecords
+      .filter(item => matchesPrepared(item, baseFilters))
+      .map(item => item.dateKey)
+      .filter(Boolean)
+  )].sort((a, b) => b.localeCompare(a));
+
+  $("dateFilter").innerHTML = '<option value="">Todas</option>' +
+    dates.map(dateKey =>
+      `<option value="${escapeHtml(dateKey)}">${escapeHtml(formatDateFilterOption(dateKey))}</option>`
+    ).join("");
+
+  $("dateFilter").disabled = dates.length === 0;
+
+  if (selectedDate && dates.includes(selectedDate)) {
+    $("dateFilter").value = selectedDate;
+  } else {
+    $("dateFilter").value = "";
+  }
+}
+
+function refreshDependentFilters() {
+  // Año, Mes y Semana permanecen libres: siempre muestran todas las
+  // alternativas existentes para Frimosa, sin quedar restringidos por
+  // otra selección activa.
+  populateFilters();
+}
+
+function populateFilters() {
+  // Conserva la opción elegida antes de reconstruir los desplegables.
+  // Esto evita que Año, Mes o Semana vuelvan a "Todos" al terminar de filtrar.
+  const selectedYear = $("yearFilter").value;
+  const selectedMonth = $("monthFilter").value;
+  const selectedWeek = $("weekFilter").value;
+
+  // Todos los selectores principales quedan limitados a Frimosa.
+  const frimosaRecords = preparedRecords.filter(item => item.depot === "Frimosa");
+
+  const years = [...new Set(frimosaRecords.map(item => item.year).filter(Boolean))]
+    .sort((a, b) => Number(b) - Number(a));
+
+  $("yearFilter").innerHTML = '<option value="">Todos</option>' +
+    years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join("");
+  $("yearFilter").disabled = years.length === 0;
+  if (years.includes(selectedYear)) $("yearFilter").value = selectedYear;
+
+  const availableMonths = new Set(frimosaRecords.map(item => item.month).filter(Boolean));
+  const months = MONTHS_ES.filter(month => availableMonths.has(month));
+  $("monthFilter").innerHTML = '<option value="">Todos</option>' +
+    months.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(formatMonth(m))}</option>`).join("");
+  $("monthFilter").disabled = months.length === 0;
+  if (months.includes(selectedMonth)) $("monthFilter").value = selectedMonth;
+
+  // Semana depende de lo elegido en Año y Mes.
+  // Así, al seleccionar un Mes, aparecen solamente las semanas que ese
+  // período tiene registradas en el JSON de Frimosa.
+  const weeks = [...new Set(
+    frimosaRecords
+      .filter(item =>
+        (!selectedYear || item.year === selectedYear) &&
+        (!selectedMonth || item.month === selectedMonth) &&
+        item.week
+      )
+      .map(item => item.week)
+  )].sort((a, b) => Number(a) - Number(b));
+
+  $("weekFilter").innerHTML = '<option value="">Todas</option>' +
+    weeks.map(w => `<option value="${escapeHtml(w)}">Semana ${escapeHtml(w)}</option>`).join("");
+  $("weekFilter").disabled = weeks.length === 0;
+
+  // Si la semana elegida no pertenece al nuevo Mes/Año, se limpia.
+  $("weekFilter").value = weeks.includes(selectedWeek) ? selectedWeek : "";
+}
+
+function applyFilters() {
+  const version = ++currentFilterVersion;
+  // Deja que el navegador pinte el estado antes del cálculo para dar respuesta visual.
+  requestAnimationFrame(() => {
+    if (version !== currentFilterVersion) return;
+
+    const dashboardFilters = getDashboardFilters();
+    const results = buildFilteredItems(dashboardFilters);
+    if (version !== currentFilterVersion) return;
+
+    filteredRecords = results.map(item => item.record);
+    currentPage = 1;
+
+    refreshDependentFilters();
+    refreshDateFilter();
+    if (version !== currentFilterVersion) return;
+
+    render();
+  });
+}
+
+function scheduleFilter(delay = 180) {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(applyFilters, delay);
+}
+
+function localDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getISOWeekRange(year, week) {
+  const numericYear = Number(year);
+  const numericWeek = Number(week);
+
+  if (!Number.isInteger(numericYear) || !Number.isInteger(numericWeek) ||
+      numericWeek < 1 || numericWeek > 53) {
+    return null;
+  }
+
+  // Semana ISO: lunes a domingo.
+  // El 4 de enero siempre pertenece a la semana ISO 1.
+  const jan4 = new Date(numericYear, 0, 4);
+  const jan4Day = jan4.getDay() || 7; // domingo = 7
+  const mondayWeek1 = new Date(jan4);
+  mondayWeek1.setDate(jan4.getDate() - jan4Day + 1);
+
+  const startDate = new Date(mondayWeek1);
+  startDate.setDate(mondayWeek1.getDate() + (numericWeek - 1) * 7);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 6);
+
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
+  return { startDate, endDate };
+}
+
+function getChartBaseFilters() {
+  // La actividad por fecha también queda fija para Frimosa.
+  return getDashboardFilters();
+}
+
+function getDashboardFilters() {
+  // Todo el dashboard se calcula exclusivamente con registros de Frimosa.
+  return {
+    ...getFilters(),
+    depot: "Frimosa"
+  };
+}
+
+function getFilteredActivityMetrics() {
+  const filters = getChartBaseFilters();
+
+  // Importante:
+  // El filtro Mes se respeta desde el campo Mes del JSON.
+  // Por eso, si "Julio" incluye registros del 26/06 al 25/07,
+  // se mostrarán esas fechas reales aunque pertenezcan al mes calendario anterior.
+  const selectedItems = preparedRecords.filter(item => matchesPrepared(item, filters));
+
+  const metrics = new Map();
+
+  for (const item of selectedItems) {
+    if (!item.dateKey || !item.date) continue;
+
+    if (!metrics.has(item.dateKey)) {
+      metrics.set(item.dateKey, {
+        date: new Date(item.date),
+        records: 0,
+        delayTotal: 0,
+        delayCount: 0
+      });
+    }
+
+    const bucket = metrics.get(item.dateKey);
+    bucket.records++;
+
+    if (Number.isFinite(item.delayMinutes) && item.delayMinutes >= 0) {
+      bucket.delayTotal += item.delayMinutes;
+      bucket.delayCount++;
+    }
+  }
+
+  // Fecha específica: una sola fecha real.
+  if (filters.date) {
+    const value = metrics.get(filters.date);
+    if (!value) return [];
+
+    return [{
+      ...value,
+      delayAverage: value.delayCount ? Math.round(value.delayTotal / value.delayCount) : null
+    }];
+  }
+
+  // Semana: siempre lunes a domingo completos.
+  if (filters.week) {
+    let weekYear = filters.year;
+
+    if (!weekYear) {
+      weekYear = selectedItems.find(item => item.year)?.year ||
+        preparedRecords.find(item => item.week === filters.week && item.year)?.year ||
+        "";
+    }
+
+    const range = getISOWeekRange(weekYear, filters.week);
+    if (!range) return [];
+
+    const result = [];
+    const cursor = new Date(range.startDate);
+    const endDate = new Date(range.endDate);
+
+    while (cursor <= endDate) {
+      const key = localDateKey(cursor);
+      const value = metrics.get(key) || {
+        date: new Date(cursor),
+        records: 0,
+        delayTotal: 0,
+        delayCount: 0
+      };
+
+      result.push({
+        ...value,
+        delayAverage: value.delayCount ? Math.round(value.delayTotal / value.delayCount) : null
+      });
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return result;
+  }
+
+  // Al abrir, sin semana seleccionada, la gráfica inicia en la semana actual.
+  // El filtro Semana permanece visualmente en "Todas".
+  if (useCurrentWeekForInitialChart && !filters.week && !filters.month && !filters.date) {
+    const today = new Date();
+    const currentWeek = getISOWeek(today);
+    const currentYear = String(today.getFullYear());
+    const range = getISOWeekRange(currentYear, currentWeek);
+
+    if (range) {
+      const result = [];
+      const cursor = new Date(range.startDate);
+      const endDate = new Date(range.endDate);
+
+      while (cursor <= endDate) {
+        const key = localDateKey(cursor);
+        const value = metrics.get(key) || {
+          date: new Date(cursor),
+          records: 0,
+          delayTotal: 0,
+          delayCount: 0
+        };
+
+        result.push({
+          ...value,
+          delayAverage: value.delayCount ? Math.round(value.delayTotal / value.delayCount) : null
+        });
+
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      return result;
+    }
+  }
+
+  // Sin semana: muestra todas las fechas reales asociadas al Mes del JSON.
+  return [...metrics.values()]
+    .sort((a, b) => a.date - b.date)
+    .map(value => ({
+      ...value,
+      delayAverage: value.delayCount ? Math.round(value.delayTotal / value.delayCount) : null
+    }));
+}
+
+function formatMinutesAsHours(minutes) {
+  if (!Number.isFinite(minutes)) return "Sin demora";
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
+}
+
+function topCounts(records, aliases, max=10) {
+  const map = new Map();
+  records.forEach(r => {
+    const value = cleanValue(getValue(r, aliases)).trim() || "Sin dato";
+    map.set(value, (map.get(value) || 0) + 1);
+  });
+  return [...map.entries()].sort((a,b) => b[1]-a[1]).slice(0,max);
+}
+
+function renderKpis() {
+  const dates = filteredRecords.map(parseDate).filter(Boolean).sort((a,b) => a-b);
+
+  // Usa los registros ya preprocesados para obtener solamente demoras válidas
+  // dentro de los filtros actuales.
+  const activeFilters = getDashboardFilters();
+  const delayValues = preparedRecords
+    .filter(item => matchesPrepared(item, activeFilters))
+    .map(item => item.delayMinutes)
+    .filter(value => Number.isFinite(value) && value >= 0);
+
+  const averageDelay = delayValues.length
+    ? Math.round(delayValues.reduce((sum, value) => sum + value, 0) / delayValues.length)
+    : null;
+
+  $("kpiRecords").textContent = filteredRecords.length.toLocaleString("es-UY");
+  $("kpiRecordsNote").textContent = "";
+  $("kpiDepots").textContent = averageDelay === null ? "—" : formatMinutesAsHours(averageDelay);
+  $("kpiDelayNote").textContent = averageDelay === null
+    ? "Sin demoras calculables"
+    : "";
+  $("kpiDays").textContent = new Set(dates.map(d => d.toDateString())).size.toLocaleString("es-UY");
+  $("kpiRange").textContent = dates.length ? `${fullDateLabel(dates[0])} a ${fullDateLabel(dates.at(-1))}` : "Sin fechas identificadas";
+}
+
+function makeChart(existing, canvasId, type, labels, data, label) {
+  if (existing) existing.destroy();
+  return new Chart($(canvasId), {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        label, data,
+        backgroundColor: type === "bar" ? "rgba(108,168,255,.78)" : "rgba(57,208,186,.25)",
+        borderColor: type === "bar" ? "#6ca8ff" : "#39d0ba",
+        borderWidth: 2, fill: type !== "bar", tension: .32,
+        borderRadius: type === "bar" ? 6 : 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: "#101a2d", titleColor: "#fff", bodyColor: "#d9e4f6", borderColor: "#344967", borderWidth: 1 }
+      },
+      scales: {
+        x: { ticks: { color: "#9aacc6", maxRotation: 0, autoSkip: true }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: "#9aacc6", precision: 0 }, grid: { color: "rgba(154,172,198,.12)" } }
+      }
+    }
+  });
+}
+
+function renderRecentActivityChart() {
+  if (dateChart) dateChart.destroy();
+
+  const recent = getFilteredActivityMetrics();
+  dateChart = new Chart($("dateChart"), {
+    data: {
+      labels: recent.map(x => [
+        dateLabel(x.date),
+        `Registros: ${x.records}`,
+        x.records === 0 && !Number.isFinite(x.delayAverage)
+          ? "Sin descarga"
+          : `Demora: ${formatMinutesAsHours(x.delayAverage)}`
+      ]),
+      datasets: [
+        {
+          type: "bar",
+          label: "Registros",
+          data: recent.map(x => x.records),
+          backgroundColor: "rgba(108,168,255,.78)",
+          borderColor: "#6ca8ff",
+          borderWidth: 1,
+          borderRadius: 6,
+          yAxisID: "y"
+        },
+        {
+          type: "line",
+          label: "Demora promedio en el período",
+          data: recent.map(x => x.delayAverage),
+          borderColor: "#39d0ba",
+          backgroundColor: "rgba(57,208,186,.22)",
+          pointBackgroundColor: "#39d0ba",
+          pointRadius: 4,
+          borderWidth: 2,
+          spanGaps: false,
+          tension: .32,
+          yAxisID: "yDelay"
+        },
+        {
+          type: "line",
+          label: "Límite Ideal 01:00hs",
+          data: recent.map(() => 60),
+          borderColor: "#ffbd59",
+          borderWidth: 2,
+          borderDash: [7, 5],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+          tension: 0,
+          yAxisID: "yDelay"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#101a2d",
+          titleColor: "#fff",
+          bodyColor: "#d9e4f6",
+          borderColor: "#344967",
+          borderWidth: 1,
+          callbacks: {
+            label(context) {
+              if (context.dataset.label === "Límite Ideal 01:00hs") {
+                return "Límite Ideal: 01:00hs";
+              }
+              if (context.dataset.yAxisID === "yDelay") {
+                const day = recent[context.dataIndex];
+                if (day && day.records === 0 && !Number.isFinite(context.raw)) {
+                  return "Sin descarga";
+                }
+                return `Demora promedio en el período: ${formatMinutesAsHours(context.raw)}`;
+              }
+              return `Registros: ${context.raw ?? 0}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#9aacc6",
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 16,
+            font: { size: 11 },
+            padding: 10
+          },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          position: "left",
+          ticks: { color: "#9aacc6", precision: 0 },
+          title: { display: true, text: "Registros", color: "#9aacc6" },
+          grid: { color: "rgba(154,172,198,.12)" }
+        },
+        yDelay: {
+          beginAtZero: true,
+          position: "right",
+          ticks: {
+            color: "#9aacc6",
+            callback: value => formatMinutesAsHours(Number(value))
+          },
+          title: { display: true, text: "Demora promedio en el período", color: "#9aacc6" },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
+}
+
+function renderCharts() {
+  renderRecentActivityChart();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
+
+function getFrimosaMonthlyMatrix() {
+  const accumulators = new Map();
+
+  // La matriz toma siempre Frimosa.
+  // Así conserva todos los años y meses para comparar el desempeño mensual.
+  for (const item of preparedRecords) {
+    if (item.depot !== "Frimosa") continue;
+    if (!item.year || !item.month) continue;
+    if (!Number.isFinite(item.delayMinutes) || item.delayMinutes < 0) continue;
+
+    const key = `${item.year}|${item.month}`;
+    const current = accumulators.get(key) || { total: 0, count: 0 };
+    current.total += item.delayMinutes;
+    current.count += 1;
+    accumulators.set(key, current);
+  }
+
+  const years = [...new Set(
+    [...accumulators.keys()]
+      .map(key => key.split("|")[0])
+      .filter(year => Number(year) >= 2020)
+  )].sort((a, b) => Number(b) - Number(a));
+
+  const matrix = new Map();
+  for (const year of years) {
+    const row = {};
+    for (const month of MONTHS_ES) {
+      const current = accumulators.get(`${year}|${month}`);
+      row[month] = current ? Math.round(current.total / current.count) : null;
+    }
+    matrix.set(year, row);
+  }
+
+  return { years, matrix, accumulators };
+}
+
+function renderMonthlyDelayMatrix() {
+  const { years, matrix, accumulators } = getFrimosaMonthlyMatrix();
+
+  $("matrixHead").innerHTML = `<tr>
+    <th>Año</th>
+    ${MONTHS_ES.map(month => `<th>${escapeHtml(formatMonth(month))}</th>`).join("")}
+  </tr>`;
+
+  $("matrixBody").innerHTML = years.map(year => {
+    const row = matrix.get(year);
+    return `<tr>
+      <td>${escapeHtml(year)}</td>
+      ${MONTHS_ES.map(month => {
+        const value = row[month];
+        if (value === null) {
+          return '<td class="matrix-empty">—</td>';
+        }
+
+        const cellClass = value > 90
+          ? "matrix-danger"
+          : value > 60
+            ? "matrix-warning"
+            : "matrix-value";
+
+        return `<td class="${cellClass}">${escapeHtml(formatMinutesAsHours(value))}</td>`;
+      }).join("")}
+    </tr>`;
+  }).join("");
+
+  $("matrixSummary").textContent = "";
+
+  $("matrixEmpty").hidden = years.length !== 0;
+}
+
+function render() {
+  renderKpis();
+  renderCharts();
+  renderMonthlyDelayMatrix();
+}
+
+
+function applyDefaultFilters() {
+  // Apertura inicial:
+  // Año 2026; Mes y Semana en "Todos".
+  const preferredYear = "2026";
+  const frimosaRecords = preparedRecords.filter(item => item.depot === "Frimosa");
+  const years = [...new Set(frimosaRecords.map(item => item.year).filter(Boolean))];
+
+  $("yearFilter").value = years.includes(preferredYear)
+    ? preferredYear
+    : years.sort((a, b) => Number(b) - Number(a))[0] || "";
+
+  $("monthFilter").value = "";
+  $("weekFilter").value = "";
+  $("dateFilter").value = "";
+
+  // La gráfica arranca en la semana actual, sin forzar el filtro visual Semana.
+  useCurrentWeekForInitialChart = true;
+  applyFilters();
+}
+
+function getMonthForSelectedWeek() {
+  const selectedWeek = $("weekFilter").value;
+  if (!selectedWeek) return "";
+
+  const selectedYear = $("yearFilter").value;
+
+  // Busca el campo Mes real del JSON para Frimosa y la semana elegida.
+  // Se respeta el año seleccionado cuando exista.
+  let candidates = preparedRecords.filter(item =>
+    item.depot === "Frimosa" &&
+    item.week === selectedWeek &&
+    (!selectedYear || item.year === selectedYear) &&
+    item.month
+  );
+
+  // Si no hay coincidencia con el año elegido, toma la coincidencia más reciente.
+  if (!candidates.length) {
+    candidates = preparedRecords.filter(item =>
+      item.depot === "Frimosa" &&
+      item.week === selectedWeek &&
+      item.month
+    );
+  }
+
+  if (!candidates.length) return "";
+
+  candidates.sort((a, b) => Number(b.year) - Number(a.year));
+  return candidates[0].month || "";
+}
+
+function getMonthForSelectedWeek() {
+  const selectedWeek = $("weekFilter").value;
+  if (!selectedWeek) return "";
+
+  const selectedYear = $("yearFilter").value;
+  const selectedMonth = $("monthFilter").value;
+
+  // Busca en Frimosa la combinación más específica disponible.
+  let candidates = preparedRecords.filter(item =>
+    item.depot === "Frimosa" &&
+    item.week === selectedWeek &&
+    (!selectedYear || item.year === selectedYear) &&
+    (!selectedMonth || item.month === selectedMonth) &&
+    item.month
+  );
+
+  // Si aún no hay coincidencia por un mes elegido previamente,
+  // busca por Año + Semana para encontrar el mes real del JSON.
+  if (!candidates.length) {
+    candidates = preparedRecords.filter(item =>
+      item.depot === "Frimosa" &&
+      item.week === selectedWeek &&
+      (!selectedYear || item.year === selectedYear) &&
+      item.month
+    );
+  }
+
+  if (!candidates.length) return "";
+
+  candidates.sort((a, b) => {
+    const byYear = Number(b.year) - Number(a.year);
+    if (byYear !== 0) return byYear;
+    return MONTHS_ES.indexOf(b.month) - MONTHS_ES.indexOf(a.month);
+  });
+
+  return candidates[0].month || "";
+}
+
+function registerEvents() {
+  // Los filtros son acumulativos:
+  // cada nueva selección se suma a las ya activas.
+  $("yearFilter").addEventListener("change", () => {
+    useCurrentWeekForInitialChart = false;
+
+    // Al cambiar de año, se conserva Mes/Semana/Fecha solo si siguen siendo válidos
+    // para ese año; FechaRto se actualiza con las fechas compatibles.
+    scheduleFilter(0);
+  });
+
+  $("monthFilter").addEventListener("change", () => {
+    useCurrentWeekForInitialChart = false;
+
+    // Mantiene Año, Semana y FechaRto para aplicar intersección de filtros.
+    scheduleFilter(0);
+  });
+
+  $("weekFilter").addEventListener("change", () => {
+    useCurrentWeekForInitialChart = false;
+
+    // La Semana tiene prioridad sobre el Mes.
+    // Se limpia Mes para mostrar todos los días reales de la semana,
+    // incluso cuando la semana cruza dos períodos mensuales del JSON.
+    $("monthFilter").value = "";
+
+    scheduleFilter(0);
+  });
+
+  $("dateFilter").addEventListener("change", () => {
+    useCurrentWeekForInitialChart = false;
+
+    // FechaRto se combina con Año, Mes y Semana ya seleccionados.
+    scheduleFilter(0);
+  });
+
+  $("clearFilters").addEventListener("click", () => {
+    $("yearFilter").value = "";
+    $("monthFilter").value = "";
+    $("weekFilter").value = "";
+    $("dateFilter").value = "";
+    useCurrentWeekForInitialChart = false;
+    scheduleFilter(0);
+  });
+}
+
+async function loadData() {
+  try {
+    setStatus("Cargando", "#ffbd59");
+    setNotice("");
+
+    const separator = URL_JSON.includes("?") ? "&" : "?";
+    const response = await fetch(`${URL_JSON}${separator}_=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Dropbox respondió HTTP ${response.status}.`);
+
+    const payload = await response.json();
+    const rawRecords = extractRecords(payload);
+    columns = extractColumns(payload, rawRecords);
+    allRecords = normalizeRows(rawRecords, columns);
+
+    // Registros con matrícula vacía o igual a 0 se consideran nulos.
+    // Se excluyen completamente antes de preparar filtros, KPIs, gráficas y matriz.
+    allRecords = allRecords.filter(record =>
+      isValidPlate(getValue(record, ["Matricula", "Matrícula", "Vehiculo", "Vehículo"]))
+    );
+
+    if (!Array.isArray(allRecords) || allRecords.length === 0) {
+      throw new Error("El JSON se cargó, pero no se detectó una lista de registros. Debe tener una propiedad como datos, data o registros.");
+    }
+
+    // Preprocesamiento único para acelerar cada filtro posterior.
+    preparedRecords = prepareRecords(allRecords);
+
+    populateFilters();
+
+    $("updatedText").textContent = "";
+    setStatus("Actualizado", "#39d0ba");
+
+    // Selección inicial: 2026 + mes actual + última semana disponible.
+    applyDefaultFilters();
+  } catch (error) {
+    console.error(error);
+    setStatus("Error de carga", "#ff7373");
+    $("updatedText").textContent = "No fue posible cargar la información desde Dropbox.";
+    setNotice(
+      "No se pudo leer el archivo. Verifique que el enlace de Dropbox sea público y que el JSON contenga una lista en 'datos', 'data' o 'registros'. Detalle: " + error.message,
+      "error"
+    );
+  }
+}
+
+registerEvents();
+loadData();
+</script>
+</body>
+</html>
