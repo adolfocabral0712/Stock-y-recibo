@@ -932,6 +932,42 @@ td{
 #page-pilas .pilas-embed-card{width:100% !important;max-width:none !important;padding:0 !important;overflow:hidden !important;}
 #page-pilas .pilas-embed{display:block;width:100% !important;max-width:none !important;height:2200px !important;min-height:2200px !important;border:0;}
 @media(max-width:650px){#page-pilas .pilas-embed{height:2400px !important;min-height:2400px !important;}}
+
+
+/* Vista integrada: MCS Recibidos */
+#page-mcs-recibidos{
+  width:100%;
+}
+
+.mcs-recibidos-embed-card{
+  width:100%;
+  min-height:2200px;
+  padding:0;
+  overflow:hidden;
+  background:#0b1220;
+}
+
+.mcs-recibidos-embed{
+  display:block;
+  width:100%;
+  height:2200px;
+  min-height:2200px;
+  border:0;
+  background:#0b1220;
+}
+
+@media(max-width:650px){
+  .mcs-recibidos-embed-card{
+    min-height:2600px;
+    border-radius:14px;
+  }
+
+  .mcs-recibidos-embed{
+    height:2600px;
+    min-height:2600px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1916,6 +1952,7 @@ function renderDatos(datos){
       <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
       <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>
       <button class="tab-btn" data-page="page-pilas" type="button">🌲 Pilas en Monte</button>
+      <button class="tab-btn" data-page="page-mcs-recibidos" type="button">📦 MCS Recibidos</button>
     </div>
 
     <section class="dashboard-page active" id="page-resumen">
@@ -1985,6 +2022,18 @@ function renderDatos(datos){
     <section class="dashboard-page" id="page-pilas">
       <div class="card pilas-embed-card">
         <iframe class="pilas-embed" title="Dashboard Pilas en Monte" loading="lazy"></iframe>
+      </div>
+    </section>
+
+    <section class="dashboard-page" id="page-mcs-recibidos">
+      <div class="card mcs-recibidos-embed-card">
+        <iframe
+          class="mcs-recibidos-embed"
+          src="https://recibo-resumen.fas-uy.workers.dev/"
+          title="Dashboard MCS Recibidos"
+          loading="lazy"
+          referrerpolicy="no-referrer">
+        </iframe>
       </div>
     </section>`;
   document.getElementById('empty').style.display='none'; document.getElementById('dash').style.display='block';
@@ -2066,7 +2115,8 @@ function construirVistasIniciales(){
     <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
     <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
     <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>
-    <button class="tab-btn" data-page="page-pilas" type="button">🌲 Pilas en Monte</button>`;
+    <button class="tab-btn" data-page="page-pilas" type="button">🌲 Pilas en Monte</button>
+      <button class="tab-btn" data-page="page-mcs-recibidos" type="button">📦 MCS Recibidos</button>`;
 
   dash.innerHTML = '';
   dash.appendChild(tabs);
@@ -2148,6 +2198,24 @@ function construirVistasIniciales(){
   tarjetaPilas.appendChild(iframePilas);
   paginaPilas.appendChild(tarjetaPilas);
   dash.appendChild(paginaPilas);
+
+  const paginaMcsRecibidos = document.createElement('section');
+  paginaMcsRecibidos.id = 'page-mcs-recibidos';
+  paginaMcsRecibidos.className = 'dashboard-page';
+
+  const tarjetaMcsRecibidos = document.createElement('div');
+  tarjetaMcsRecibidos.className = 'card mcs-recibidos-embed-card';
+
+  const iframeMcsRecibidos = document.createElement('iframe');
+  iframeMcsRecibidos.className = 'mcs-recibidos-embed';
+  iframeMcsRecibidos.src = 'https://recibo-resumen.fas-uy.workers.dev/';
+  iframeMcsRecibidos.title = 'Dashboard MCS Recibidos';
+  iframeMcsRecibidos.loading = 'lazy';
+  iframeMcsRecibidos.referrerPolicy = 'no-referrer';
+
+  tarjetaMcsRecibidos.appendChild(iframeMcsRecibidos);
+  paginaMcsRecibidos.appendChild(tarjetaMcsRecibidos);
+  dash.appendChild(paginaMcsRecibidos);
 
   activarNavegacionDashboard();
 }
