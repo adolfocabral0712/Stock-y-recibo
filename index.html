@@ -941,7 +941,7 @@ td{
 
 .mcs-recibidos-embed-card{
   width:100%;
-  min-height:2200px;
+  min-height:4300px;
   padding:0;
   overflow:hidden;
   background:#0b1220;
@@ -950,21 +950,22 @@ td{
 .mcs-recibidos-embed{
   display:block;
   width:100%;
-  height:2200px;
-  min-height:2200px;
+  height:4300px;
+  min-height:4300px;
   border:0;
+  overflow:hidden;
   background:#0b1220;
 }
 
 @media(max-width:650px){
   .mcs-recibidos-embed-card{
-    min-height:2600px;
+    min-height:5200px;
     border-radius:14px;
   }
 
   .mcs-recibidos-embed{
-    height:2600px;
-    min-height:2600px;
+    height:5200px;
+    min-height:5200px;
   }
 }
 
@@ -2032,7 +2033,9 @@ function renderDatos(datos){
           src="https://recibo-resumen.fas-uy.workers.dev/"
           title="Dashboard MCS Recibidos"
           loading="lazy"
-          referrerpolicy="no-referrer">
+          scrolling="no"
+          referrerpolicy="no-referrer"
+          style="overflow:hidden;">
         </iframe>
       </div>
     </section>`;
@@ -2211,6 +2214,8 @@ function construirVistasIniciales(){
   iframeMcsRecibidos.src = 'https://recibo-resumen.fas-uy.workers.dev/';
   iframeMcsRecibidos.title = 'Dashboard MCS Recibidos';
   iframeMcsRecibidos.loading = 'lazy';
+  iframeMcsRecibidos.scrolling = 'no';
+  iframeMcsRecibidos.style.overflow = 'hidden';
   iframeMcsRecibidos.referrerPolicy = 'no-referrer';
 
   tarjetaMcsRecibidos.appendChild(iframeMcsRecibidos);
