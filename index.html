@@ -1570,10 +1570,6 @@ function activarNavegacionDashboard(){
         window.setTimeout(()=>document.dispatchEvent(new Event('contrato-visible')), 50);
       }
 
-      if(target === 'page-pilas'){
-        cargarIframePilas();
-      }
-
       window.scrollTo({top:0,behavior:'smooth'});
     });
   });
@@ -2035,7 +2031,6 @@ function renderDatos(datos){
       <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
       <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
       <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>
-      <button class="tab-btn" data-page="page-pilas" type="button">🌲 Pilas en Monte</button>
       <button class="tab-btn" data-page="page-mcs-recibidos" type="button">📦 MCS Recibidos</button>
     </div>
 
@@ -2100,12 +2095,6 @@ function renderDatos(datos){
     <section class="dashboard-page" id="page-tiempos-descarga">
       <div class="card download-embed-card">
         <iframe class="download-embed" src="./tiempos-descarga.html" title="Dashboard de tiempos de descarga" loading="lazy"></iframe>
-      </div>
-    </section>
-
-    <section class="dashboard-page" id="page-pilas">
-      <div class="card pilas-embed-card">
-        <iframe class="pilas-embed" title="Dashboard Pilas en Monte" loading="lazy"></iframe>
       </div>
     </section>
 
@@ -2201,7 +2190,6 @@ function construirVistasIniciales(){
     <button class="tab-btn" data-page="page-contrato" type="button">📋 Contrato UPM</button>
     <button class="tab-btn" data-page="page-densidades" type="button">📈 Densidades</button>
     <button class="tab-btn" data-page="page-tiempos-descarga" type="button">⏱ Tiempos de descarga</button>
-    <button class="tab-btn" data-page="page-pilas" type="button">🌲 Pilas en Monte</button>
       <button class="tab-btn" data-page="page-mcs-recibidos" type="button">📦 MCS Recibidos</button>`;
 
   dash.innerHTML = '';
@@ -2268,22 +2256,6 @@ function construirVistasIniciales(){
   tarjetaTiempos.appendChild(iframeTiempos);
   paginaTiempos.appendChild(tarjetaTiempos);
   dash.appendChild(paginaTiempos);
-
-  const paginaPilas = document.createElement('section');
-  paginaPilas.id = 'page-pilas';
-  paginaPilas.className = 'dashboard-page';
-
-  const tarjetaPilas = document.createElement('div');
-  tarjetaPilas.className = 'card pilas-embed-card';
-
-  const iframePilas = document.createElement('iframe');
-  iframePilas.className = 'pilas-embed';
-  iframePilas.title = 'Dashboard Pilas en Monte';
-  iframePilas.loading = 'lazy';
-
-  tarjetaPilas.appendChild(iframePilas);
-  paginaPilas.appendChild(tarjetaPilas);
-  dash.appendChild(paginaPilas);
 
   const paginaMcsRecibidos = document.createElement('section');
   paginaMcsRecibidos.id = 'page-mcs-recibidos';
