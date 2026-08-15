@@ -373,6 +373,35 @@
       overflow-y: visible !important;
     }
 
+
+    /* ========================================================
+       DETALLE DE REMITOS
+       Scroll vertical propio SOLO en esta tabla.
+       El resumen y la gráfica siguen creciendo normalmente.
+       ======================================================== */
+    .detail-card .table-wrap {
+      max-height: 66vh !important;
+      overflow-y: auto !important;
+      overflow-x: auto !important;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+
+    .detail-card thead {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    @media (max-width: 680px) {
+      .detail-card .table-wrap {
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -454,7 +483,7 @@
       <div class="empty" id="summaryEmpty" hidden>No hay registros válidos para resumir con los filtros seleccionados.</div>
     </section>
 
-    <section class="table-card">
+    <section class="table-card detail-card">
       <div class="table-head">
         <h2>Detalle de remitos</h2>
         <div class="results-text" id="resultsText">0 registros</div>
