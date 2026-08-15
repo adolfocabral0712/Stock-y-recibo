@@ -852,7 +852,15 @@ td{
   margin-bottom:8px;
 }
 
-.density-embed-card,
+.density-embed-card{
+  width:100%;
+  min-height:0;
+  height:auto;
+  padding:0;
+  overflow:hidden;
+  background:#101820;
+}
+
 .download-embed-card{
   width:100%;
   min-height:calc(100vh - 230px);
@@ -881,7 +889,12 @@ td{
 }
 
 @media(max-width:650px){
-  .density-embed-card,
+  .density-embed-card{
+    min-height:0;
+    height:auto;
+    border-radius:14px;
+  }
+
   .download-embed-card{
     min-height:calc(100vh - 175px);
     border-radius:14px;
@@ -1042,6 +1055,7 @@ function ajustarAlturaIframeDensidades(iframe){
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     if(!doc || !doc.body) return;
 
+    // El iframe no debe tener scroll propio.
     doc.documentElement.style.setProperty('height', 'auto', 'important');
     doc.documentElement.style.setProperty('min-height', '0', 'important');
     doc.documentElement.style.setProperty('overflow-y', 'hidden', 'important');
@@ -1052,24 +1066,48 @@ function ajustarAlturaIframeDensidades(iframe){
 
     let temporizador = null;
 
+    const medirAlturaReal = ()=>{
+      const raiz = doc.documentElement;
+      const body = doc.body;
+      const contenido = doc.querySelector('.container') || doc.querySelector('main') || body;
+
+      let maxBottom = 0;
+
+      // Medimos el final real de todos los elementos visibles de primer nivel.
+      [...body.children].forEach(el=>{
+        const r = el.getBoundingClientRect();
+        maxBottom = Math.max(maxBottom, r.bottom + (iframe.contentWindow?.scrollY || 0));
+      });
+
+      const rectContenido = contenido.getBoundingClientRect();
+      maxBottom = Math.max(
+        maxBottom,
+        rectContenido.bottom + (iframe.contentWindow?.scrollY || 0)
+      );
+
+      return Math.max(
+        body.scrollHeight || 0,
+        body.offsetHeight || 0,
+        raiz.scrollHeight || 0,
+        raiz.offsetHeight || 0,
+        maxBottom || 0
+      );
+    };
+
     const actualizarAltura = ()=>{
       window.clearTimeout(temporizador);
 
       temporizador = window.setTimeout(()=>{
-        const contenido = doc.querySelector('.container') || doc.querySelector('main') || doc.body;
+        const alturaContenido = medirAlturaReal();
 
-        const alturaContenido = Math.max(
-          contenido.scrollHeight || 0,
-          doc.body.scrollHeight || 0,
-          doc.documentElement.scrollHeight || 0
-        );
-
-        const alturaFinal = Math.max(900, Math.ceil(alturaContenido + 12));
+        // Margen extra para evitar que se corte el borde inferior o la última fila.
+        const alturaFinal = Math.max(900, Math.ceil(alturaContenido + 80));
         const alturaActual = parseInt(iframe.style.height, 10) || 0;
 
-        if(Math.abs(alturaFinal - alturaActual) < 4) return;
+        if(Math.abs(alturaFinal - alturaActual) >= 2){
+          iframe.style.setProperty('height', alturaFinal + 'px', 'important');
+        }
 
-        iframe.style.setProperty('height', alturaFinal + 'px', 'important');
         iframe.style.setProperty('min-height', '0', 'important');
         iframe.style.setProperty('overflow', 'hidden', 'important');
 
@@ -1079,14 +1117,15 @@ function ajustarAlturaIframeDensidades(iframe){
           contenedor.style.setProperty('min-height', '0', 'important');
           contenedor.style.setProperty('overflow', 'hidden', 'important');
         }
-      }, 80);
+      }, 100);
     };
 
     actualizarAltura();
-    window.setTimeout(actualizarAltura, 300);
-    window.setTimeout(actualizarAltura, 800);
-    window.setTimeout(actualizarAltura, 1600);
-    window.setTimeout(actualizarAltura, 3000);
+
+    // Varias mediciones porque tablas, fuentes y Chart.js pueden modificar la altura después.
+    [250, 600, 1200, 2200, 4000, 7000].forEach(ms=>{
+      window.setTimeout(actualizarAltura, ms);
+    });
 
     if(iframe._densidadResizeObserver){
       iframe._densidadResizeObserver.disconnect();
@@ -1099,6 +1138,7 @@ function ajustarAlturaIframeDensidades(iframe){
     if(typeof ResizeObserver !== 'undefined'){
       iframe._densidadResizeObserver = new ResizeObserver(actualizarAltura);
       iframe._densidadResizeObserver.observe(doc.body);
+      iframe._densidadResizeObserver.observe(doc.documentElement);
     }
 
     iframe._densidadMutationObserver = new MutationObserver(actualizarAltura);
@@ -1106,11 +1146,12 @@ function ajustarAlturaIframeDensidades(iframe){
       childList:true,
       subtree:true,
       attributes:true,
+      characterData:true,
       attributeFilter:['class','style','hidden']
     });
 
-    doc.addEventListener('click', ()=>window.setTimeout(actualizarAltura, 150), true);
-    doc.addEventListener('change', ()=>window.setTimeout(actualizarAltura, 150), true);
+    doc.addEventListener('click', ()=>window.setTimeout(actualizarAltura, 180), true);
+    doc.addEventListener('change', ()=>window.setTimeout(actualizarAltura, 180), true);
 
   }catch(error){
     console.warn('No se pudo ajustar automáticamente la altura de Densidades:', error);
