@@ -494,10 +494,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Enlace de Dropbox convertido a descarga directa.
-    // Para mayor estabilidad al publicar, alojá datos.json en el mismo repositorio de GitHub
-    // y reemplazá esta línea por: const URL_DATOS = "./datos.json";
-    const URL_DATOS = "https://dl.dropboxusercontent.com/scl/fi/0elgiam9fez982xm0432t/datos.json?rlkey=arlb0dnc72rtdf0olz9ssi7rm&dl=1";
+    // Fuente generada desde PostgreSQL local: public.vw_mediciones_dashboard -> Mediciones.json.
+    // Pegá aquí el enlace público DIRECTO de Dropbox a Mediciones.json.
+    // Si luego alojás el JSON junto al HTML, podés usar: const URL_DATOS = "./Mediciones.json";
+    const URL_DATOS = "https://dl.dropbox.com/scl/fi/ri23xu428izh29irawrvr/Mediciones.json?rlkey=54u6a72489nu5qejnqwb9jw91&dl=1";
 
     const state = {
       datos: [],
@@ -624,16 +624,64 @@
           });
     }
 
-    function normalizarRegistro(r) {
-      const fecha = obtenerValor(r, "fecha", "FECHA");
-      const fechaCreado = obtenerValor(r, "fecha_creado", "fecha_de_creado", "FECHA_DE_CREADO");
-      const anioOriginal = obtenerValor(r, "anio", "AÑO", "ano", "ANO");
-      const fechaConvertida = parseFecha(fecha);
+    const nombresMes = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    // Período operativo:
+    // cada mes va del día 26 del mes anterior al día 25 del mes indicado.
+    // Ej.: Enero 2026 = 26/12/2025 al 25/01/2026.
+    function obtenerPeriodoOperativo(valorFecha) {
+      const fecha = valorFecha instanceof Date ? valorFecha : parseFecha(valorFecha);
+
+      if (!fecha || Number.isNaN(fecha.getTime())) {
+        return { anio: "", mes: "" };
+      }
+
+      let anio = fecha.getFullYear();
+      let mesIndice = fecha.getMonth();
+
+      if (fecha.getDate() >= 26) {
+        mesIndice += 1;
+
+        if (mesIndice > 11) {
+          mesIndice = 0;
+          anio += 1;
+        }
+      }
 
       return {
-        anio: String(anioOriginal || (fechaConvertida ? fechaConvertida.getFullYear() : "")).trim(),
-        mes: String(obtenerValor(r, "mes", "MES")).trim(),
-        fecha: fecha,
+        anio: String(anio),
+        mes: nombresMes[mesIndice]
+      };
+    }
+
+    function normalizarRegistro(r) {
+      const fechaCreado = obtenerValor(
+        r,
+        "fecha_de_creado",
+        "fecha_creado",
+        "FECHA_DE_CREADO"
+      );
+
+      const fechaBase = obtenerValor(
+        r,
+        "fecha",
+        "FECHA"
+      ) || fechaCreado;
+
+      const periodoOperativo = obtenerPeriodoOperativo(fechaBase);
+
+      // El dashboard usa SIEMPRE el período operativo 26→25.
+      // No depende de campos "anio" o "mes" que puedan venir en el JSON.
+      const anio = periodoOperativo.anio;
+      const mes = periodoOperativo.mes;
+
+      return {
+        anio,
+        mes,
+        fecha: fechaBase,
         fecha_creado: fechaCreado,
         remito_origen: obtenerValor(r, "remito_origen", "REMITO_ORIGEN"),
         remito_sistema: obtenerValor(r, "remito_sistema", "REMITO_SISTEMA"),
@@ -642,11 +690,13 @@
         producto: String(obtenerValor(r, "producto", "PRODUCTO")).trim(),
         contratista_cosecha: String(obtenerValor(r, "contratista_cosecha", "CONTRATISTA_COSECHA")).trim(),
         densidad: parseNumero(obtenerValor(r, "densidad", "DENSIDAD")),
-        anulado: String(obtenerValor(r, "anulado", "ANULADO") || "No").trim()
+        anulado: String(obtenerValor(r, "anulado", "ANULADO") || "No").trim(),
+        es_anulado: Boolean(obtenerValor(r, "es_anulado", "ES_ANULADO"))
       };
     }
 
     function esAnulado(registro) {
+      if (registro.es_anulado === true) return true;
       return ["si", "sí", "true", "1", "anulado"].includes(normalizarTexto(registro.anulado));
     }
 
@@ -1120,14 +1170,9 @@
 
     function aplicarFiltrosIniciales() {
       const hoy = new Date();
-      const anioActual = String(hoy.getFullYear());
-
-      const mesesES = [
-        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
-      ];
-
-      const mesActual = mesesES[hoy.getMonth()];
+      const periodoActual = obtenerPeriodoOperativo(hoy);
+      const anioActual = periodoActual.anio;
+      const mesActual = periodoActual.mes;
 
       const existeAnio = state.datos.some(r => r.anio === anioActual);
       const existeMes = state.datos.some(
@@ -1143,7 +1188,7 @@
         const respuesta = await fetch(URL_DATOS, { cache: "no-store" });
 
         if (!respuesta.ok) {
-          throw new Error(`No se pudo leer datos.json (HTTP ${respuesta.status}).`);
+          throw new Error(`No se pudo leer Mediciones.json (HTTP ${respuesta.status}).`);
         }
 
         const bruto = await respuesta.json();
@@ -1158,9 +1203,23 @@
         refrescarFiltros();
         renderizar();
 
-        els.status.innerHTML = `Datos cargados: <strong>${formatearNumero(state.datos.length, 0)}</strong> registros`;
+        const actualizado = bruto?.actualizado ? new Date(bruto.actualizado) : null;
+        const actualizadoTexto = actualizado && !Number.isNaN(actualizado.getTime())
+          ? actualizado.toLocaleString("es-UY", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false
+            })
+          : "sin fecha";
+
+        els.status.innerHTML =
+          `Actualizado: <strong>${escapeHTML(actualizadoTexto)}</strong><br>` +
+          `Registros: <strong>${formatearNumero(state.datos.length, 0)}</strong>`;
       } catch (error) {
-        els.status.innerHTML = `<span class="error">No fue posible cargar datos.json</span>`;
+        els.status.innerHTML = `<span class="error">No fue posible cargar Mediciones.json</span>`;
         els.body.innerHTML = "";
         els.foot.innerHTML = "";
         els.empty.hidden = false;
@@ -1168,8 +1227,7 @@
           <div class="error">
             <strong>Error al leer la fuente de datos.</strong><br>
             ${escapeHTML(error.message)}<br><br>
-            Recomendación: subí <code>datos.json</code> al mismo repositorio de GitHub Pages
-            y cambiá <code>URL_DATOS</code> por <code>"./datos.json"</code>.
+            Revisá que <code>URL_DATOS</code> apunte al enlace público directo de <code>Mediciones.json</code>.
           </div>
         `;
       }
