@@ -857,7 +857,7 @@ td{
   height:auto;
   min-height:0;
   padding:0;
-  overflow:visible;
+  overflow:hidden;
   background:#101820;
 }
 
@@ -872,7 +872,7 @@ td{
 .density-embed{
   display:block;
   width:100%;
-  height:1400px;
+  height:1050px;
   min-height:0;
   border:0;
   overflow:hidden;
@@ -889,13 +889,22 @@ td{
 }
 
 @media(max-width:650px){
-  .density-embed-card,
+  .density-embed-card{
+    min-height:0;
+    height:auto;
+    border-radius:14px;
+  }
+
   .download-embed-card{
     min-height:calc(100vh - 175px);
     border-radius:14px;
   }
 
-  .density-embed,
+  .density-embed{
+    height:1050px;
+    min-height:0;
+  }
+
   .download-embed{
     height:calc(100vh - 185px);
     min-height:2200px;
@@ -1561,37 +1570,40 @@ function buscarTotalPorTexto(rows, texto){
 }
 
 
-function configurarDensidadesDinamicas(){
-  const pagina = document.getElementById('page-densidades');
-  const iframe = pagina?.querySelector('iframe.density-embed');
-
-  if(!pagina || !iframe || !pagina.classList.contains('active')) return;
+function ajustarDensidadesSinEspacio(iframe){
+  if(!iframe) return;
 
   try{
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if(!doc || !doc.body || !doc.documentElement) return;
+    if(!doc || !doc.body) return;
+
+    const contenedor =
+      doc.querySelector('.container') ||
+      doc.querySelector('main');
+
+    if(!contenedor) return;
 
     // --------------------------------------------------------
-    // FIJAR SOLO EL ALTO DEL DETALLE PARA EVITAR EL BUCLE 66vh
+    // Detalle de remitos: conservar scroll propio y altura
+    // estable dentro del iframe. Así "vh" no depende de la
+    // altura del iframe y no genera un bucle de crecimiento.
     // --------------------------------------------------------
 
     const secciones = [...doc.querySelectorAll('section.table-card')];
-
     const detalle = secciones.find(seccion=>{
       const h2 = seccion.querySelector('h2');
-      return h2 && h2.textContent.trim().toLowerCase() === 'detalle de remitos';
+      return h2 &&
+        h2.textContent.trim().toLowerCase() === 'detalle de remitos';
     });
 
     if(detalle){
-      detalle.classList.add('detalle-remitos-embebido');
+      detalle.classList.add('detalle-remitos-en-index');
 
-      let estilo = doc.getElementById('estilo-densidades-embebido');
-
-      if(!estilo){
-        estilo = doc.createElement('style');
-        estilo.id = 'estilo-densidades-embebido';
-        estilo.textContent = `
-          .detalle-remitos-embebido .table-wrap{
+      if(!doc.getElementById('css-detalle-remitos-en-index')){
+        const style = doc.createElement('style');
+        style.id = 'css-detalle-remitos-en-index';
+        style.textContent = `
+          .detalle-remitos-en-index .table-wrap{
             height:520px !important;
             max-height:520px !important;
             overflow-y:auto !important;
@@ -1600,136 +1612,119 @@ function configurarDensidadesDinamicas(){
             -webkit-overflow-scrolling:touch;
           }
 
-          .detalle-remitos-embebido thead{
+          .detalle-remitos-en-index thead{
             position:sticky !important;
             top:0 !important;
             z-index:10 !important;
           }
-
-          html,body{
-            height:auto !important;
-            min-height:0 !important;
-          }
         `;
-        doc.head.appendChild(estilo);
+        doc.head.appendChild(style);
       }
     }
 
-    // --------------------------------------------------------
-    // FUNCIÓN DE MEDICIÓN REAL
-    // --------------------------------------------------------
-
     const medir = ()=>{
-      if(!pagina.classList.contains('active')) return;
+      try{
+        // IMPORTANTE:
+        // getBoundingClientRect().height del .container da la
+        // altura REAL del dashboard y puede tanto crecer como
+        // reducirse. No depende de la altura actual del iframe.
+        const rect = contenedor.getBoundingClientRect();
+        const alturaReal = Math.ceil(rect.height + 8);
 
-      const contenedor =
-        doc.querySelector('.container') ||
-        doc.querySelector('main') ||
-        doc.body;
-
-      const altura = Math.max(
-        contenedor.scrollHeight || 0,
-        contenedor.offsetHeight || 0,
-        doc.body.scrollHeight || 0,
-        doc.body.offsetHeight || 0,
-        doc.documentElement.scrollHeight || 0,
-        doc.documentElement.offsetHeight || 0
-      );
-
-      if(altura > 500){
-        iframe.style.setProperty(
-          'height',
-          Math.ceil(altura + 40) + 'px',
-          'important'
-        );
-
-        iframe.style.setProperty(
-          'min-height',
-          '0',
-          'important'
-        );
+        if(alturaReal > 500){
+          iframe.style.setProperty(
+            'height',
+            alturaReal + 'px',
+            'important'
+          );
+          iframe.style.setProperty(
+            'min-height',
+            '0',
+            'important'
+          );
+        }
+      }catch(error){
+        console.warn('Error midiendo Densidades:', error);
       }
     };
 
-    // --------------------------------------------------------
-    // MEDIR AHORA Y DESPUÉS DE RENDERIZADOS TARDÍOS
-    // --------------------------------------------------------
-
     medir();
 
-    [100,250,500,900,1500,2500,4000].forEach(ms=>{
-      setTimeout(medir,ms);
+    // JSON, tabla y Chart.js pueden terminar después.
+    [100,300,700,1200,2200,4000].forEach(ms=>{
+      window.setTimeout(medir, ms);
     });
 
-    // --------------------------------------------------------
-    // OBSERVAR CAMBIOS DE TAMAÑO
-    // --------------------------------------------------------
-
+    // Recalcular cuando filtros/resumen/gráfico cambian.
     if(typeof ResizeObserver !== 'undefined'){
-      if(iframe._densResizeObserver){
-        iframe._densResizeObserver.disconnect();
+      if(iframe._densidadesResizeObserver){
+        iframe._densidadesResizeObserver.disconnect();
       }
 
-      iframe._densResizeObserver = new ResizeObserver(()=>{
-        setTimeout(medir,80);
-      });
+      iframe._densidadesResizeObserver =
+        new ResizeObserver(()=>window.setTimeout(medir,60));
 
-      iframe._densResizeObserver.observe(doc.body);
-      iframe._densResizeObserver.observe(doc.documentElement);
-
-      const contenedor =
-        doc.querySelector('.container') ||
-        doc.querySelector('main');
-
-      if(contenedor){
-        iframe._densResizeObserver.observe(contenedor);
-      }
+      iframe._densidadesResizeObserver.observe(contenedor);
     }
 
-    // --------------------------------------------------------
-    // OBSERVAR CAMBIOS DE DOM POR FILTROS / TABLAS / GRÁFICA
-    // --------------------------------------------------------
-
-    if(iframe._densMutationObserver){
-      iframe._densMutationObserver.disconnect();
+    if(iframe._densidadesMutationObserver){
+      iframe._densidadesMutationObserver.disconnect();
     }
 
-    iframe._densMutationObserver = new MutationObserver(()=>{
-      setTimeout(medir,100);
-    });
+    iframe._densidadesMutationObserver =
+      new MutationObserver(()=>window.setTimeout(medir,80));
 
-    iframe._densMutationObserver.observe(doc.body,{
+    iframe._densidadesMutationObserver.observe(contenedor,{
       childList:true,
       subtree:true,
       attributes:true,
       characterData:true
     });
 
-    // --------------------------------------------------------
-    // EVENTOS DE FILTROS
-    // --------------------------------------------------------
+    doc.addEventListener(
+      'change',
+      ()=>window.setTimeout(medir,120),
+      true
+    );
 
-    doc.querySelectorAll('select,button').forEach(el=>{
-      if(el.dataset.alturaListenerDensidades) return;
-
-      el.addEventListener('change',()=>{
-        setTimeout(medir,120);
-        setTimeout(medir,350);
-        setTimeout(medir,800);
-      });
-
-      el.addEventListener('click',()=>{
-        setTimeout(medir,120);
-        setTimeout(medir,350);
-        setTimeout(medir,800);
-      });
-
-      el.dataset.alturaListenerDensidades = '1';
-    });
+    doc.addEventListener(
+      'click',
+      ()=>window.setTimeout(medir,120),
+      true
+    );
 
   }catch(error){
-    console.warn('No se pudo configurar Densidades dinámicamente:',error);
+    console.warn(
+      'No se pudo ajustar Densidades desde el index:',
+      error
+    );
   }
+}
+
+function prepararDensidadesSinEspacio(){
+  const pagina = document.getElementById('page-densidades');
+  if(!pagina || !pagina.classList.contains('active')) return;
+
+  const iframe = pagina.querySelector('iframe.density-embed');
+  if(!iframe) return;
+
+  iframe.setAttribute('scrolling','no');
+
+  if(!iframe.dataset.ajusteSinEspacio){
+    iframe.addEventListener('load',()=>{
+      window.setTimeout(
+        ()=>ajustarDensidadesSinEspacio(iframe),
+        100
+      );
+    });
+    iframe.dataset.ajusteSinEspacio = '1';
+  }
+
+  try{
+    if(iframe.contentDocument?.readyState === 'complete'){
+      ajustarDensidadesSinEspacio(iframe);
+    }
+  }catch(_){}
 }
 
 function activarNavegacionDashboard(){
@@ -1760,9 +1755,9 @@ function activarNavegacionDashboard(){
       }
 
       if(target === 'page-densidades'){
-        window.setTimeout(configurarDensidadesDinamicas,80);
-        window.setTimeout(configurarDensidadesDinamicas,400);
-        window.setTimeout(configurarDensidadesDinamicas,1200);
+        window.setTimeout(prepararDensidadesSinEspacio,80);
+        window.setTimeout(prepararDensidadesSinEspacio,400);
+        window.setTimeout(prepararDensidadesSinEspacio,1200);
       }
 
       window.scrollTo({top:0,behavior:'smooth'});
@@ -2432,7 +2427,7 @@ function construirVistasIniciales(){
   iframeDensidades.loading = 'lazy';
   iframeDensidades.setAttribute('scrolling','no');
   iframeDensidades.addEventListener('load',()=>{
-    setTimeout(configurarDensidadesDinamicas,150);
+    window.setTimeout(prepararDensidadesSinEspacio,120);
   });
 
   tarjetaDensidades.appendChild(iframeDensidades);
