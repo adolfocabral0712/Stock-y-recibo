@@ -1242,7 +1242,69 @@
       }
     }
 
+
+    // ========================================================
+    // INFORMAR ALTURA REAL AL INDEX PADRE
+    // ========================================================
+
+    let temporizadorAlturaPadre = null;
+
+    function informarAlturaAlPadre() {
+      if (window.parent === window) return;
+
+      clearTimeout(temporizadorAlturaPadre);
+
+      temporizadorAlturaPadre = setTimeout(() => {
+        const container = document.querySelector(".container");
+        const main = document.querySelector("main");
+
+        const altura = Math.max(
+          document.documentElement.scrollHeight || 0,
+          document.body.scrollHeight || 0,
+          container?.scrollHeight || 0,
+          container?.offsetHeight || 0,
+          main?.scrollHeight || 0,
+          main?.offsetHeight || 0
+        );
+
+        window.parent.postMessage(
+          {
+            tipo: "altura-densidades",
+            altura: Math.ceil(altura + 30)
+          },
+          "*"
+        );
+      }, 60);
+    }
+
+    window.addEventListener("load", informarAlturaAlPadre);
+    window.addEventListener("resize", informarAlturaAlPadre);
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observadorAltura = new ResizeObserver(informarAlturaAlPadre);
+
+      observadorAltura.observe(document.documentElement);
+      observadorAltura.observe(document.body);
+
+      const containerAltura = document.querySelector(".container");
+      if (containerAltura) observadorAltura.observe(containerAltura);
+    }
+
+    const observadorCambiosAltura = new MutationObserver(informarAlturaAlPadre);
+
+    observadorCambiosAltura.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true
+    });
+
+
     iniciar();
+
+    setTimeout(informarAlturaAlPadre, 300);
+    setTimeout(informarAlturaAlPadre, 1000);
+    setTimeout(informarAlturaAlPadre, 2500);
   </script>
 </body>
 </html>
