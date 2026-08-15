@@ -872,7 +872,7 @@ td{
 .density-embed{
   display:block;
   width:100%;
-  height:1200px;
+  height:1400px;
   min-height:0;
   border:0;
   overflow:hidden;
@@ -1561,42 +1561,174 @@ function buscarTotalPorTexto(rows, texto){
 }
 
 
-function ajustarDensidadesVisible(){
-  const iframe = document.querySelector('#page-densidades iframe.density-embed');
-  const page = document.getElementById('page-densidades');
+function configurarDensidadesDinamicas(){
+  const pagina = document.getElementById('page-densidades');
+  const iframe = pagina?.querySelector('iframe.density-embed');
 
-  if(!iframe || !page || !page.classList.contains('active')) return;
+  if(!pagina || !iframe || !pagina.classList.contains('active')) return;
 
   try{
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     if(!doc || !doc.body || !doc.documentElement) return;
 
-    // No tocamos la tabla interna: conserva su scroll propio tal como funciona localmente.
-    const contenedor =
-      doc.querySelector('.container') ||
-      doc.querySelector('main') ||
-      doc.body;
+    // --------------------------------------------------------
+    // FIJAR SOLO EL ALTO DEL DETALLE PARA EVITAR EL BUCLE 66vh
+    // --------------------------------------------------------
+
+    const secciones = [...doc.querySelectorAll('section.table-card')];
+
+    const detalle = secciones.find(seccion=>{
+      const h2 = seccion.querySelector('h2');
+      return h2 && h2.textContent.trim().toLowerCase() === 'detalle de remitos';
+    });
+
+    if(detalle){
+      detalle.classList.add('detalle-remitos-embebido');
+
+      let estilo = doc.getElementById('estilo-densidades-embebido');
+
+      if(!estilo){
+        estilo = doc.createElement('style');
+        estilo.id = 'estilo-densidades-embebido';
+        estilo.textContent = `
+          .detalle-remitos-embebido .table-wrap{
+            height:520px !important;
+            max-height:520px !important;
+            overflow-y:auto !important;
+            overflow-x:auto !important;
+            scrollbar-gutter:stable;
+            -webkit-overflow-scrolling:touch;
+          }
+
+          .detalle-remitos-embebido thead{
+            position:sticky !important;
+            top:0 !important;
+            z-index:10 !important;
+          }
+
+          html,body{
+            height:auto !important;
+            min-height:0 !important;
+          }
+        `;
+        doc.head.appendChild(estilo);
+      }
+    }
+
+    // --------------------------------------------------------
+    // FUNCIÓN DE MEDICIÓN REAL
+    // --------------------------------------------------------
 
     const medir = ()=>{
+      if(!pagina.classList.contains('active')) return;
+
+      const contenedor =
+        doc.querySelector('.container') ||
+        doc.querySelector('main') ||
+        doc.body;
+
       const altura = Math.max(
         contenedor.scrollHeight || 0,
         contenedor.offsetHeight || 0,
         doc.body.scrollHeight || 0,
-        doc.documentElement.scrollHeight || 0
+        doc.body.offsetHeight || 0,
+        doc.documentElement.scrollHeight || 0,
+        doc.documentElement.offsetHeight || 0
       );
 
       if(altura > 500){
-        iframe.style.height = Math.ceil(altura + 30) + 'px';
-        iframe.style.minHeight = '0';
+        iframe.style.setProperty(
+          'height',
+          Math.ceil(altura + 40) + 'px',
+          'important'
+        );
+
+        iframe.style.setProperty(
+          'min-height',
+          '0',
+          'important'
+        );
       }
     };
 
-    // Medir cuando la pestaña YA está visible.
+    // --------------------------------------------------------
+    // MEDIR AHORA Y DESPUÉS DE RENDERIZADOS TARDÍOS
+    // --------------------------------------------------------
+
     medir();
-    [100, 300, 700, 1200, 2200].forEach(ms => setTimeout(medir, ms));
+
+    [100,250,500,900,1500,2500,4000].forEach(ms=>{
+      setTimeout(medir,ms);
+    });
+
+    // --------------------------------------------------------
+    // OBSERVAR CAMBIOS DE TAMAÑO
+    // --------------------------------------------------------
+
+    if(typeof ResizeObserver !== 'undefined'){
+      if(iframe._densResizeObserver){
+        iframe._densResizeObserver.disconnect();
+      }
+
+      iframe._densResizeObserver = new ResizeObserver(()=>{
+        setTimeout(medir,80);
+      });
+
+      iframe._densResizeObserver.observe(doc.body);
+      iframe._densResizeObserver.observe(doc.documentElement);
+
+      const contenedor =
+        doc.querySelector('.container') ||
+        doc.querySelector('main');
+
+      if(contenedor){
+        iframe._densResizeObserver.observe(contenedor);
+      }
+    }
+
+    // --------------------------------------------------------
+    // OBSERVAR CAMBIOS DE DOM POR FILTROS / TABLAS / GRÁFICA
+    // --------------------------------------------------------
+
+    if(iframe._densMutationObserver){
+      iframe._densMutationObserver.disconnect();
+    }
+
+    iframe._densMutationObserver = new MutationObserver(()=>{
+      setTimeout(medir,100);
+    });
+
+    iframe._densMutationObserver.observe(doc.body,{
+      childList:true,
+      subtree:true,
+      attributes:true,
+      characterData:true
+    });
+
+    // --------------------------------------------------------
+    // EVENTOS DE FILTROS
+    // --------------------------------------------------------
+
+    doc.querySelectorAll('select,button').forEach(el=>{
+      if(el.dataset.alturaListenerDensidades) return;
+
+      el.addEventListener('change',()=>{
+        setTimeout(medir,120);
+        setTimeout(medir,350);
+        setTimeout(medir,800);
+      });
+
+      el.addEventListener('click',()=>{
+        setTimeout(medir,120);
+        setTimeout(medir,350);
+        setTimeout(medir,800);
+      });
+
+      el.dataset.alturaListenerDensidades = '1';
+    });
 
   }catch(error){
-    console.warn('No se pudo ajustar la altura de Densidades:', error);
+    console.warn('No se pudo configurar Densidades dinámicamente:',error);
   }
 }
 
@@ -1628,9 +1760,9 @@ function activarNavegacionDashboard(){
       }
 
       if(target === 'page-densidades'){
-        window.setTimeout(ajustarDensidadesVisible, 80);
-        window.setTimeout(ajustarDensidadesVisible, 500);
-        window.setTimeout(ajustarDensidadesVisible, 1500);
+        window.setTimeout(configurarDensidadesDinamicas,80);
+        window.setTimeout(configurarDensidadesDinamicas,400);
+        window.setTimeout(configurarDensidadesDinamicas,1200);
       }
 
       window.scrollTo({top:0,behavior:'smooth'});
@@ -2151,7 +2283,7 @@ function renderDatos(datos){
 
     <section class="dashboard-page" id="page-densidades">
       <div class="card density-embed-card">
-        <iframe class="density-embed" src="./densidades.html" title="Dashboard de densidades" loading="lazy" scrolling="no" onload="setTimeout(ajustarDensidadesVisible,150)"></iframe>
+        <iframe class="density-embed" src="./densidades.html" title="Dashboard de densidades" loading="lazy" scrolling="no"></iframe>
       </div>
     </section>
 
@@ -2298,6 +2430,10 @@ function construirVistasIniciales(){
   iframeDensidades.src = './densidades.html';
   iframeDensidades.title = 'Dashboard de densidades';
   iframeDensidades.loading = 'lazy';
+  iframeDensidades.setAttribute('scrolling','no');
+  iframeDensidades.addEventListener('load',()=>{
+    setTimeout(configurarDensidadesDinamicas,150);
+  });
 
   tarjetaDensidades.appendChild(iframeDensidades);
   paginaDensidades.appendChild(tarjetaDensidades);
