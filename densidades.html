@@ -227,9 +227,10 @@
     }
 
     .table-wrap {
-      overflow-x: auto;
-      overflow-y: visible;
-      max-height: none;
+      overflow-x: auto !important;
+      overflow-y: visible !important;
+      max-height: none !important;
+      height: auto !important;
     }
 
     table {
@@ -365,6 +366,13 @@
     @media (max-width: 420px) {
       .filters, .kpis { grid-template-columns: 1fr; }
     }
+
+    html, body {
+      height: auto !important;
+      min-height: 0 !important;
+      overflow-y: visible !important;
+    }
+
   </style>
 </head>
 <body>
