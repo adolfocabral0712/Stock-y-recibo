@@ -1141,20 +1141,24 @@
 
     function renderizar() {
       const registros = aplicarFiltros();
+      // En el detalle solo se muestran remitos cuya muestra fue realizada.
+      // Los registros marcados pero sin medición llegan con densidad nula
+      // y anteriormente se representaban como "—".
+      const registrosDetalle = registros.filter(r => r.densidad !== null);
       const registrosValidos = registros.filter(r => !esAnulado(r) && r.densidad !== null);
       const anulados = registros.filter(esAnulado).length;
       const promedio = registrosValidos.length
         ? registrosValidos.reduce((acum, r) => acum + r.densidad, 0) / registrosValidos.length
         : null;
 
-      els.kpiRegistros.textContent = formatearNumero(registros.length, 0);
+      els.kpiRegistros.textContent = formatearNumero(registrosDetalle.length, 0);
       els.kpiPromedio.textContent = promedio === null ? "—" : formatearNumero(promedio, 3);
-      els.resultsText.textContent = `${formatearNumero(registros.length, 0)} registro${registros.length === 1 ? "" : "s"}`;
+      els.resultsText.textContent = `${formatearNumero(registrosDetalle.length, 0)} registro${registrosDetalle.length === 1 ? "" : "s"}`;
 
       renderizarResumen(registros);
       renderizarGrafica(registros);
 
-      els.body.innerHTML = registros.map(r => `
+      els.body.innerHTML = registrosDetalle.map(r => `
         <tr>
           <td>${escapeHTML(formatearFecha(r.fecha))}</td>
           <td>${escapeHTML(obtenerHora(r.fecha_creado))}</td>
@@ -1176,7 +1180,7 @@
         </tr>
       `;
 
-      els.empty.hidden = registros.length > 0;
+      els.empty.hidden = registrosDetalle.length > 0;
     }
 
     function actualizarDesdeCambios() {
