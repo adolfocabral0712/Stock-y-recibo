@@ -2232,7 +2232,7 @@ function renderDatos(datos){
         <div class="kpi"><div class="label">Total Entregas Contrato UPM</div><div class="value ${cls(pctEntregado)}">${formatearPorcentaje(pctEntregado)}</div><div class="sub">${fmt(entregadoContrato)} / ${fmt(totalContrato)} MCS · ${fmt(pendienteContrato)} pendientes · ${formatearPorcentaje(pctRestante)} restante</div></div>
       </div>
       <div class="grid">
-        <section class="card summary-montes">${tableHtml('Saldos por monte', r.saldos, 8)}</section>
+        <section class="card summary-montes">${tableHtml('Saldos por monte', r.saldos, r.saldos.length)}</section>
         <section class="card summary-produccion">${tableHtml('Producción diaria BDMT', r.produccion, 12)}</section>
         <section class="card summary-stocks">${tableHtml('Stocks planta FRIMOSA', r.stocks, 20)}</section>
       </div>
