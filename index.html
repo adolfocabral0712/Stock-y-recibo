@@ -1482,6 +1482,14 @@ function agregarTotalesMensuales(title, rows){
 }
 
 function tableHtml(title, rows, max=10){
+  rows = Array.isArray(rows)
+    ? rows.filter((fila, indice) =>
+        indice === 0 ||
+        (Array.isArray(fila) &&
+          fila.some(celda => String(celda ?? '').trim() !== ''))
+      )
+    : [];
+
   rows = limpiarColumnasVacias(rows);
   rows = agregarTotalesMensuales(title, rows);
   if(!rows.length) return `<div class="card"><h2>${title}</h2><p class="muted">Sin datos.</p></div>`;
@@ -2232,7 +2240,7 @@ function renderDatos(datos){
         <div class="kpi"><div class="label">Total Entregas Contrato UPM</div><div class="value ${cls(pctEntregado)}">${formatearPorcentaje(pctEntregado)}</div><div class="sub">${fmt(entregadoContrato)} / ${fmt(totalContrato)} MCS · ${fmt(pendienteContrato)} pendientes · ${formatearPorcentaje(pctRestante)} restante</div></div>
       </div>
       <div class="grid">
-        <section class="card summary-montes">${tableHtml('Saldos por monte', r.saldos, r.saldos.length)}</section>
+        <section class="card summary-montes">${tableHtml('Saldos por monte', r.saldos, Infinity)}</section>
         <section class="card summary-produccion">${tableHtml('Producción diaria BDMT', r.produccion, 12)}</section>
         <section class="card summary-stocks">${tableHtml('Stocks planta FRIMOSA', r.stocks, 20)}</section>
       </div>
