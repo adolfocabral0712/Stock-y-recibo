@@ -10,16 +10,16 @@
 
   <style>
     :root {
-      --bg: #0b1220;
-      --panel: #121c2f;
-      --panel-2: #17243b;
-      --line: #2a3b57;
-      --text: #e8eef8;
-      --muted: #9aacc6;
-      --accent: #39d0ba;
-      --accent-2: #6ca8ff;
-      --warning: #ffbd59;
-      --danger: #ff7373;
+      --bg: #F4F3F1;
+      --panel: #FFFFFF;
+      --panel-2: #F4F3F1;
+      --line: #DDD9D4;
+      --text: #1F1F1F;
+      --muted: #6B6B6B;
+      --accent: #C65312;
+      --accent-2: #E86F18;
+      --warning: #C65312;
+      --danger: #6B6B6B;
       --shadow: 0 14px 36px rgba(0,0,0,.22);
     }
 
@@ -29,8 +29,8 @@
       min-width: 320px;
       color: var(--text);
       background:
-        radial-gradient(circle at 0 0, rgba(57,208,186,.08), transparent 32%),
-        radial-gradient(circle at 100% 0, rgba(108,168,255,.10), transparent 34%),
+        radial-gradient(circle at 0 0, rgba(198,83,18,.08), transparent 32%),
+        radial-gradient(circle at 100% 0, rgba(232,111,24,.08), transparent 34%),
         var(--bg);
       font-family: Arial, Helvetica, sans-serif;
     }
@@ -45,20 +45,20 @@
     .status {
       display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
       padding: 10px 13px; border: 1px solid var(--line); border-radius: 999px;
-      color: var(--muted); background: rgba(18,28,47,.72); font-size: 13px;
+      color: var(--muted); background: rgba(255,255,255,.94); font-size: 13px;
     }
-    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 12px currentColor; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #FFB86B; box-shadow: 0 0 12px currentColor; }
 
     .notice {
-      border: 1px solid rgba(255,189,89,.45); background: rgba(255,189,89,.10);
-      border-radius: 12px; padding: 13px 15px; color: #ffe0a6; margin-bottom: 18px;
+      border: 1px solid rgba(198,83,18,.35); background: rgba(255,184,107,.16);
+      border-radius: 12px; padding: 13px 15px; color: #C65312; margin-bottom: 18px;
       display: none; font-size: 14px;
     }
-    .notice.error { border-color: rgba(255,115,115,.50); background: rgba(255,115,115,.11); color: #ffd0d0; }
+    .notice.error { border-color: rgba(107,107,107,.35); background: rgba(107,107,107,.08); color: #6B6B6B; }
 
     .filters {
       display: grid; grid-template-columns: repeat(4, minmax(155px, 1fr)) auto;
-      gap: 12px; padding: 16px; background: rgba(18,28,47,.92);
+      gap: 12px; padding: 16px; background: #FFFFFF;
       border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
       margin-bottom: 18px;
     }
@@ -70,9 +70,9 @@
       color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
       padding: 8px 10px; outline: none;
     }
-    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(57,208,186,.12); }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(198,83,18,.14); }
     button {
-      align-self: end; color: #06221f; background: var(--accent); border: 0;
+      align-self: end; color: #FFFFFF; background: var(--accent); border: 0;
       padding: 8px 14px; cursor: pointer; font-weight: 700;
     }
     button:hover { filter: brightness(1.07); }
@@ -82,7 +82,7 @@
       margin-bottom: 18px;
     }
     .kpi, .card {
-      background: rgba(18,28,47,.92); border: 1px solid var(--line); border-radius: 16px;
+      background: #FFFFFF; border: 1px solid var(--line); border-radius: 16px;
       box-shadow: var(--shadow);
     }
     .kpi {
@@ -132,11 +132,11 @@
     table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
     thead { position: sticky; top: 0; z-index: 2; }
     th {
-      text-align: left; color: #c8d5e9; background: #1a2942; padding: 11px 12px;
+      text-align: left; color: #FFFFFF; background: #C65312; padding: 11px 12px;
       border-bottom: 1px solid var(--line); font-weight: 700;
     }
-    td { padding: 10px 12px; border-bottom: 1px solid rgba(42,59,87,.64); color: #e3eaf5; }
-    tbody tr:hover { background: rgba(108,168,255,.065); }
+    td { padding: 10px 12px; border-bottom: 1px solid rgba(107,107,107,.18); color: #1F1F1F; }
+    tbody tr:hover { background: rgba(198,83,18,.06); }
     .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
     .pagination {
       display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 13px 16px;
@@ -154,25 +154,25 @@
       position: sticky;
       left: 0;
       z-index: 1;
-      background: #17243b;
+      background: #F4F3F1;
       font-weight: 700;
     }
     .matrix-table thead th:first-child {
       z-index: 3;
-      background: #1a2942;
+      background: #C65312;
     }
     .matrix-table td.matrix-value { color: var(--accent); font-variant-numeric: tabular-nums; }
     .matrix-table td.matrix-warning {
-      color: #ffd98a;
-      background: rgba(255,189,89,.17);
+      color: #C65312;
+      background: rgba(255,184,107,.20);
       font-weight: 700;
     }
     .matrix-table td.matrix-danger {
-      color: #ffd0d0;
-      background: rgba(255,115,115,.18);
+      color: #6B6B6B;
+      background: rgba(107,107,107,.10);
       font-weight: 700;
     }
-    .matrix-table td.matrix-empty { color: #71839f; }
+    .matrix-table td.matrix-empty { color: #6B6B6B; }
 
     @media (max-width: 1050px) {
       .filters { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
@@ -785,8 +785,8 @@ function renderRecentActivityChart() {
           type: "bar",
           label: "Registros",
           data: recent.map(item => item.records),
-          backgroundColor: "rgba(108,168,255,.78)",
-          borderColor: "#6ca8ff",
+          backgroundColor: "rgba(198,83,18,.72)",
+          borderColor: "#C65312",
           borderWidth: 1,
           borderRadius: 6,
           yAxisID: "y"
@@ -795,9 +795,9 @@ function renderRecentActivityChart() {
           type: "line",
           label: "Demora promedio en el período",
           data: recent.map(item => item.delayAverage),
-          borderColor: "#39d0ba",
-          backgroundColor: "rgba(57,208,186,.22)",
-          pointBackgroundColor: "#39d0ba",
+          borderColor: "#E86F18",
+          backgroundColor: "rgba(232,111,24,.18)",
+          pointBackgroundColor: "#E86F18",
           pointRadius: 4,
           borderWidth: 2,
           spanGaps: false,
@@ -808,7 +808,7 @@ function renderRecentActivityChart() {
           type: "line",
           label: "Límite Ideal 01:00hs",
           data: recent.map(() => 60),
-          borderColor: "#ffbd59",
+          borderColor: "#FFB86B",
           borderWidth: 2,
           borderDash: [7, 5],
           pointRadius: 0,
@@ -831,10 +831,10 @@ function renderRecentActivityChart() {
           display: false
         },
         tooltip: {
-          backgroundColor: "#101a2d",
-          titleColor: "#fff",
-          bodyColor: "#d9e4f6",
-          borderColor: "#344967",
+          backgroundColor: "#FFFFFF",
+          titleColor: "#FFFFFF",
+          bodyColor: "#1F1F1F",
+          borderColor: "#DDD9D4",
           borderWidth: 1,
           callbacks: {
             label(context) {
@@ -864,7 +864,7 @@ function renderRecentActivityChart() {
       scales: {
         x: {
           ticks: {
-            color: "#9aacc6",
+            color: "#6B6B6B",
             maxRotation: 0,
             autoSkip: true,
             maxTicksLimit: 16,
@@ -879,30 +879,30 @@ function renderRecentActivityChart() {
           beginAtZero: true,
           position: "left",
           ticks: {
-            color: "#9aacc6",
+            color: "#6B6B6B",
             precision: 0
           },
           title: {
             display: true,
             text: "Registros",
-            color: "#9aacc6"
+            color: "#6B6B6B"
           },
           grid: {
-            color: "rgba(154,172,198,.12)"
+            color: "rgba(107,107,107,.16)"
           }
         },
         yDelay: {
           beginAtZero: true,
           position: "right",
           ticks: {
-            color: "#9aacc6",
+            color: "#6B6B6B",
             callback: value =>
               formatMinutesAsHours(Number(value))
           },
           title: {
             display: true,
             text: "Demora promedio en el período",
-            color: "#9aacc6"
+            color: "#6B6B6B"
           },
           grid: {
             drawOnChartArea: false
@@ -1096,7 +1096,7 @@ function formatUpdated(value) {
 
 async function loadData() {
   try {
-    setStatus("Cargando", "#ffbd59");
+    setStatus("Cargando", "#FFB86B");
     setNotice("");
 
     const separator =
@@ -1142,14 +1142,14 @@ async function loadData() {
         ? `Datos actualizados: ${updated}`
         : `${preparedRecords.length.toLocaleString("es-UY")} registros`;
 
-    setStatus("Actualizado", "#39d0ba");
+    setStatus("Actualizado", "#E86F18");
 
     applyDefaultFilters();
 
   } catch (error) {
     console.error(error);
 
-    setStatus("Error de carga", "#ff7373");
+    setStatus("Error de carga", "#6B6B6B");
 
     $("updatedText").textContent =
       "No fue posible cargar la información.";
