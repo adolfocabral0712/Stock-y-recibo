@@ -177,7 +177,12 @@
       width: min(56%, 620px);
       text-align: center;
       white-space: normal;
+      line-height: 1.4;
     }
+    .chart-summary-line { display: block; }
+    .trend-ascenso { color: #D83B32; font-weight: 750; }
+    .trend-descenso { color: #2E9D55; font-weight: 750; }
+    .trend-estable { color: #1F1F1F; font-weight: 750; }
     .chart-filter {
       display: flex;
       align-items: center;
@@ -952,7 +957,11 @@
         });
 
       if (!validos.length) {
-        els.chartText.textContent = "0 registros válidos · Promedio: — · Tendencia: —";
+        els.chartText.innerHTML = `
+          <span class="chart-summary-line">0 registros válidos</span>
+          <span class="chart-summary-line">Promedio: —</span>
+          <span class="chart-summary-line">Tendencia: —</span>
+        `;
       }
 
       if (graficaDensidad) {
@@ -974,9 +983,14 @@
       const minimo = Math.max(0, Math.min(...valores, promedioGrafica) - 0.02);
       const maximo = Math.min(1.2, Math.max(...valores, promedioGrafica) + 0.02);
 
-      els.chartText.textContent =
-        `${formatearNumero(validos.length, 0)} registro${validos.length === 1 ? "" : "s"} válido${validos.length === 1 ? "" : "s"} · ` +
-        `Promedio: ${formatearNumero(promedioGrafica, 3)} · Tendencia: ${tendencia.texto}`;
+      const cantidadTexto = `${formatearNumero(validos.length, 0)} registro${validos.length === 1 ? "" : "s"} válido${validos.length === 1 ? "" : "s"}`;
+      const claseTendencia = normalizarTexto(tendencia.texto);
+
+      els.chartText.innerHTML = `
+        <span class="chart-summary-line">${escapeHTML(cantidadTexto)}</span>
+        <span class="chart-summary-line">Promedio: ${formatearNumero(promedioGrafica, 3)}</span>
+        <span class="chart-summary-line">Tendencia: <strong class="trend-${claseTendencia}">${escapeHTML(tendencia.texto)}</strong></span>
+      `;
 
       graficaDensidad = new Chart(els.graficaDensidad, {
         type: "line",
