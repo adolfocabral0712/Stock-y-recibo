@@ -162,16 +162,6 @@
       white-space:nowrap;
     }
     .detail-duration { color:#C65312; font-weight:800; font-variant-numeric:tabular-nums; }
-    .detail-status {
-      display:inline-block;
-      padding:4px 8px;
-      border-radius:999px;
-      background:rgba(232,111,24,.14);
-      color:#C65312;
-      font-size:11px;
-      font-weight:750;
-    }
-    .detail-status.excluded { background:rgba(107,107,107,.10); color:#6B6B6B; }
     #dateChart { cursor:pointer; }
 
     .matrix-table th,
@@ -1031,9 +1021,8 @@ function renderDailyDownloadDetail() {
     : null;
 
   const dateLabelText = dayKey ? formatDateFilterOption(dayKey) : "Sin fecha";
-  const selectedByFilter = Boolean(filters.date);
   $("dailyDetailInfo").textContent = dayRecords.length
-    ? `${selectedByFilter ? "Fecha indicada en el filtro" : "Fecha seleccionada"}: ${dateLabelText}. Hacé clic en otro día del gráfico para cambiar. El promedio usa demoras válidas.`
+    ? `Fecha: ${dateLabelText}`
     : "No hay descargas para los filtros seleccionados.";
 
   $("dailyDetailSummary").textContent = dayRecords.length
@@ -1052,8 +1041,7 @@ function renderDailyDownloadDetail() {
       value: item => getRecordValue(item.record, column.aliases) || "—"
     })),
     { label: "Matrícula", value: item => item.plate || "—" },
-    { label: "Demora individual", value: item => Number.isFinite(item.delayMinutes) ? formatMinutesAsHours(item.delayMinutes) : "Sin demora" },
-    { label: "Aporta al promedio", value: item => Number.isFinite(item.delayMinutes) ? "Sí" : "No" }
+    { label: "Demora individual", value: item => Number.isFinite(item.delayMinutes) ? formatMinutesAsHours(item.delayMinutes) : "Sin demora" }
   ];
 
   $("dailyDetailHead").innerHTML = `<tr>${columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join("")}</tr>`;
@@ -1063,10 +1051,6 @@ function renderDailyDownloadDetail() {
         const value = escapeHtml(column.value(item));
         if (column.label === "Demora individual") {
           return `<td class="detail-duration">${value}</td>`;
-        }
-        if (column.label === "Aporta al promedio") {
-          const included = Number.isFinite(item.delayMinutes);
-          return `<td><span class="detail-status${included ? "" : " excluded"}">${value}</span></td>`;
         }
         return `<td>${value}</td>`;
       }).join("")}
