@@ -146,6 +146,34 @@
     .pagination button:disabled { opacity: .45; cursor: default; }
     .page-label { color: var(--muted); font-size: 12px; }
 
+    .daily-detail-card .table-scroll { max-height: 430px; }
+    .daily-detail-card table { min-width: 760px; }
+    .daily-detail-summary {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 11px;
+      border:1px solid rgba(198,83,18,.24);
+      border-radius:999px;
+      background:rgba(255,184,107,.18);
+      color:#1F1F1F;
+      font-size:12px;
+      font-weight:750;
+      white-space:nowrap;
+    }
+    .detail-duration { color:#C65312; font-weight:800; font-variant-numeric:tabular-nums; }
+    .detail-status {
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(232,111,24,.14);
+      color:#C65312;
+      font-size:11px;
+      font-weight:750;
+    }
+    .detail-status.excluded { background:rgba(107,107,107,.10); color:#6B6B6B; }
+    #dateChart { cursor:pointer; }
+
     .matrix-table th,
     .matrix-table td { text-align: center; }
     .matrix-table th:first-child,
@@ -184,6 +212,8 @@
       .filters, .kpis { grid-template-columns: 1fr 1fr; }
       .filters button { grid-column: span 2; }
       .chart-box { height: 245px; }
+      .daily-detail-card .table-head { align-items: flex-start; flex-direction: column; }
+      .daily-detail-summary { white-space: normal; border-radius: 10px; }
     }
   </style>
 </head>
@@ -219,6 +249,23 @@
         <p class="card-subtitle"></p>
         <div class="chart-box"><canvas id="dateChart"></canvas></div>
       </article>
+    </section>
+
+    <section class="card table-card daily-detail-card">
+      <div class="table-head">
+        <div>
+          <h2>Descargas individuales del día</h2>
+          <div class="card-subtitle" id="dailyDetailInfo">Seleccioná una fecha o hacé clic en un día del gráfico.</div>
+        </div>
+        <div class="daily-detail-summary" id="dailyDetailSummary">—</div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead id="dailyDetailHead"></thead>
+          <tbody id="dailyDetailBody"></tbody>
+        </table>
+        <div class="empty" id="dailyDetailEmpty" hidden>No hay descargas para el día seleccionado.</div>
+      </div>
     </section>
 
     <section class="card table-card">
@@ -257,6 +304,7 @@ let preparedRecords = [];
 let filteredRecords = [];
 let dateChart = null;
 let useCurrentWeekForInitialChart = true;
+let selectedDetailDateKey = "";
 
 const $ = id => document.getElementById(id);
 
@@ -416,6 +464,31 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;"
   }[char]));
+}
+
+function normalizeFieldKey(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function getRecordValue(record, aliases) {
+  if (!record || typeof record !== "object") return "";
+  const wanted = new Set(aliases.map(normalizeFieldKey));
+  const key = Object.keys(record).find(name => wanted.has(normalizeFieldKey(name)));
+  return key === undefined ? "" : cleanValue(record[key]);
+}
+
+function formatDownloadDateTime(item) {
+  const rawDate = getRecordValue(item.record, ["fecharto", "fecha_rto", "fecha_remito", "fecha_descarga", "fecha"]);
+  const rawTime = getRecordValue(item.record, ["horarto", "hora_rto", "hora_descarga", "hora"]);
+  const date = parseDateValue(rawDate) || item.date;
+  const dateText = date ? fullDateLabel(date) : "—";
+  const embeddedTime = rawDate.match(/(?:T|\s)(\d{1,2}:\d{2})(?::\d{2})?/);
+  const timeText = rawTime || (embeddedTime ? embeddedTime[1] : "");
+  return timeText ? `${dateText} ${timeText}` : dateText;
 }
 
 function setNotice(message = "", type = "") {
@@ -581,6 +654,16 @@ function applyFilters() {
   filteredRecords = preparedRecords.filter(item =>
     matchesFilters(item, filters)
   );
+
+  const availableDates = [...new Set(
+    filteredRecords.map(item => item.dateKey).filter(Boolean)
+  )].sort();
+
+  if (filters.date && availableDates.includes(filters.date)) {
+    selectedDetailDateKey = filters.date;
+  } else if (!availableDates.includes(selectedDetailDateKey)) {
+    selectedDetailDateKey = availableDates.at(-1) || "";
+  }
 
   render();
 }
@@ -820,6 +903,14 @@ function renderRecentActivityChart() {
       ]
     },
     options: {
+      onClick(event, elements) {
+        const point = elements && elements[0];
+        if (!point) return;
+        const day = recent[point.index];
+        if (!day || !day.date) return;
+        selectedDetailDateKey = localDateKey(day.date);
+        renderDailyDownloadDetail();
+      },
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
@@ -911,6 +1002,77 @@ function renderRecentActivityChart() {
       }
     }
   });
+}
+
+function renderDailyDownloadDetail() {
+  const filters = getFilters();
+  const allDates = [...new Set(
+    filteredRecords.map(item => item.dateKey).filter(Boolean)
+  )].sort();
+
+  let dayKey = filters.date || selectedDetailDateKey;
+  if (!allDates.includes(dayKey)) dayKey = allDates.at(-1) || "";
+  selectedDetailDateKey = dayKey;
+
+  const dayRecords = dayKey
+    ? filteredRecords
+        .filter(item => item.dateKey === dayKey)
+        .slice()
+        .sort((a, b) => {
+          const dateA = parseDateValue(a.record.fecharto) || a.date;
+          const dateB = parseDateValue(b.record.fecharto) || b.date;
+          return dateA - dateB || a.index - b.index;
+        })
+    : [];
+
+  const includedRecords = dayRecords.filter(item => Number.isFinite(item.delayMinutes));
+  const average = includedRecords.length
+    ? Math.round(includedRecords.reduce((sum, item) => sum + item.delayMinutes, 0) / includedRecords.length)
+    : null;
+
+  const dateLabelText = dayKey ? formatDateFilterOption(dayKey) : "Sin fecha";
+  const selectedByFilter = Boolean(filters.date);
+  $("dailyDetailInfo").textContent = dayRecords.length
+    ? `${selectedByFilter ? "Fecha indicada en el filtro" : "Fecha seleccionada"}: ${dateLabelText}. Hacé clic en otro día del gráfico para cambiar. El promedio usa demoras válidas.`
+    : "No hay descargas para los filtros seleccionados.";
+
+  $("dailyDetailSummary").textContent = dayRecords.length
+    ? `${dayRecords.length.toLocaleString("es-UY")} descargas · ${includedRecords.length.toLocaleString("es-UY")} incluidas · promedio ${average === null ? "—" : formatMinutesAsHours(average)}`
+    : "—";
+
+  const optionalColumns = [
+    { label: "Remito", aliases: ["remito", "remito_origen", "numero_remito", "nro_remito", "rtoorigen"] },
+    { label: "Origen / destino", aliases: ["origen", "destino", "deposito", "predio", "monte", "planta"] }
+  ].filter(column => dayRecords.some(item => getRecordValue(item.record, column.aliases)));
+
+  const columns = [
+    { label: "Fecha y hora", value: item => formatDownloadDateTime(item) },
+    ...optionalColumns.map(column => ({
+      label: column.label,
+      value: item => getRecordValue(item.record, column.aliases) || "—"
+    })),
+    { label: "Matrícula", value: item => item.plate || "—" },
+    { label: "Demora individual", value: item => Number.isFinite(item.delayMinutes) ? formatMinutesAsHours(item.delayMinutes) : "Sin demora" },
+    { label: "Aporta al promedio", value: item => Number.isFinite(item.delayMinutes) ? "Sí" : "No" }
+  ];
+
+  $("dailyDetailHead").innerHTML = `<tr>${columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join("")}</tr>`;
+  $("dailyDetailBody").innerHTML = dayRecords.map(item => `
+    <tr>
+      ${columns.map((column, index) => {
+        const value = escapeHtml(column.value(item));
+        if (column.label === "Demora individual") {
+          return `<td class="detail-duration">${value}</td>`;
+        }
+        if (column.label === "Aporta al promedio") {
+          const included = Number.isFinite(item.delayMinutes);
+          return `<td><span class="detail-status${included ? "" : " excluded"}">${value}</span></td>`;
+        }
+        return `<td>${value}</td>`;
+      }).join("")}
+    </tr>
+  `).join("");
+  $("dailyDetailEmpty").hidden = dayRecords.length !== 0;
 }
 
 function getFrimosaMonthlyMatrix() {
@@ -1008,6 +1170,7 @@ function renderMonthlyDelayMatrix() {
 function render() {
   renderKpis();
   renderRecentActivityChart();
+  renderDailyDownloadDetail();
   renderMonthlyDelayMatrix();
 }
 
