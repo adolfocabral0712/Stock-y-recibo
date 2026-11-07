@@ -161,7 +161,21 @@
       font-weight:750;
       white-space:nowrap;
     }
+    .daily-detail-card th,
+    .daily-detail-card td { text-align: center; }
     .detail-duration { color:#C65312; font-weight:800; font-variant-numeric:tabular-nums; }
+    .delay-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 7px;
+      border-radius: 50%;
+      vertical-align: 1px;
+    }
+    .delay-dot.green { background: #2E9D55; box-shadow: 0 0 5px rgba(46,157,85,.35); }
+    .delay-dot.yellow { background: #E7B416; box-shadow: 0 0 5px rgba(231,180,22,.35); }
+    .delay-dot.red { background: #D83B32; box-shadow: 0 0 5px rgba(216,59,50,.35); }
+    .delay-dot.neutral { background: #9A9A9A; }
     #dateChart { cursor:pointer; }
 
     .matrix-table th,
@@ -1061,7 +1075,23 @@ function renderDailyDownloadDetail() {
       ${columns.map((column, index) => {
         const value = escapeHtml(column.value(item));
         if (column.label === "Demora individual") {
-          return `<td class="detail-duration">${value}</td>`;
+          if (!Number.isFinite(item.delayMinutes)) {
+            return `<td class="detail-duration"><span class="delay-dot neutral" title="Sin demora calculable"></span>${value}</td>`;
+          }
+
+          const delayClass = item.delayMinutes < 60
+            ? "green"
+            : item.delayMinutes <= 120
+              ? "yellow"
+              : "red";
+
+          const delayTitle = delayClass === "green"
+            ? "Menor a 01:00"
+            : delayClass === "yellow"
+              ? "Desde 01:00 hasta 02:00"
+              : "Mayor a 02:00";
+
+          return `<td class="detail-duration"><span class="delay-dot ${delayClass}" title="${delayTitle}"></span>${value}</td>`;
         }
         return `<td>${value}</td>`;
       }).join("")}
