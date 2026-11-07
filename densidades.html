@@ -129,7 +129,7 @@
       margin-bottom: 18px;
     }
 
-    .kpi { padding: 16px; }
+    .kpi { padding: 16px; text-align: center; }
 
     .kpi .label {
       color: var(--muted);
@@ -447,16 +447,14 @@
 
     <section class="kpis">
       <article class="kpi">
-        <div class="label">Remitos filtrados</div>
+        <div class="label">Muestras Filtradas</div>
         <div class="value" id="kpiRegistros">0</div>
-        <div class="detail">Cantidad de registros mostrados</div>
       </article>
       <article class="kpi">
         <div class="label">Promedio densidad</div>
         <div class="value" id="kpiPromedio">—</div>
-        <div class="detail">Solo registros no anulados con densidad válida</div>
       </article>
-</section>
+    </section>
 
 
     <section class="table-card summary-card">
@@ -1182,7 +1180,7 @@
 
       els.foot.innerHTML = `
         <tr>
-          <td colspan="7">PROMEDIO DE DENSIDAD (no anulados)</td>
+          <td colspan="7">PROMEDIO DE DENSIDAD</td>
           <td class="num">${promedio === null ? "—" : formatearNumero(promedio, 3)}</td>
           <td class="center">${formatearNumero(registrosValidos.length, 0)} válidos</td>
         </tr>
