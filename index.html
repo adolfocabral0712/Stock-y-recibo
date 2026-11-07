@@ -2286,13 +2286,13 @@ function renderDatos(datos){
 
     <section class="dashboard-page" id="page-densidades">
       <div class="card density-embed-card">
-        <iframe class="density-embed" src="./densidades.html" title="Dashboard de densidades" loading="lazy" scrolling="no"></iframe>
+        <iframe class="density-embed" src="./densidades.html?v=20261107" title="Dashboard de densidades" loading="lazy" scrolling="no"></iframe>
       </div>
     </section>
 
     <section class="dashboard-page" id="page-tiempos-descarga">
       <div class="card download-embed-card">
-        <iframe class="download-embed" src="./tiempos-descarga.html" title="Dashboard de tiempos de descarga" loading="lazy"></iframe>
+        <iframe class="download-embed" src="./tiempos-descarga.html?v=20261107" title="Dashboard de tiempos de descarga" loading="lazy"></iframe>
       </div>
     </section>
 
@@ -2430,7 +2430,7 @@ function construirVistasIniciales(){
 
   const iframeDensidades = document.createElement('iframe');
   iframeDensidades.className = 'density-embed';
-  iframeDensidades.src = './densidades.html';
+  iframeDensidades.src = './densidades.html?v=20261107';
   iframeDensidades.title = 'Dashboard de densidades';
   iframeDensidades.loading = 'lazy';
   iframeDensidades.setAttribute('scrolling','no');
@@ -2451,7 +2451,7 @@ function construirVistasIniciales(){
 
   const iframeTiempos = document.createElement('iframe');
   iframeTiempos.className = 'download-embed';
-  iframeTiempos.src = './tiempos-descarga.html';
+  iframeTiempos.src = './tiempos-descarga.html?v=20261107';
   iframeTiempos.title = 'Dashboard de tiempos de descarga';
   iframeTiempos.loading = 'lazy';
 
