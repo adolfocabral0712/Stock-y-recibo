@@ -235,8 +235,8 @@
 
     <section class="grid">
       <article class="card">
-        <h2>Actividad por fecha · Frimosa</h2>
-        <p class="card-subtitle"></p>
+        <h2>Demora por descarga · Frimosa</h2>
+        <p class="card-subtitle" id="dailyChartSubtitle">Cada punto representa una descarga del día seleccionado.</p>
         <div class="chart-box"><canvas id="dateChart"></canvas></div>
       </article>
     </section>
@@ -245,7 +245,7 @@
       <div class="table-head">
         <div>
           <h2>Descargas individuales del día</h2>
-          <div class="card-subtitle" id="dailyDetailInfo">Seleccioná una fecha o hacé clic en un día del gráfico.</div>
+          <div class="card-subtitle" id="dailyDetailInfo">Fecha del día seleccionado.</div>
         </div>
         <div class="daily-detail-summary" id="dailyDetailSummary">—</div>
       </div>
@@ -837,107 +837,134 @@ function renderKpis() {
       : "Sin fechas identificadas";
 }
 
-function renderRecentActivityChart() {
+function renderIndividualDelayChart() {
   if (dateChart) {
     dateChart.destroy();
   }
 
-  const recent = getActivityMetrics();
+  const dayKey = selectedDetailDateKey;
+  const dayRecords = dayKey
+    ? filteredRecords
+        .filter(item => item.dateKey === dayKey)
+        .slice()
+        .sort((a, b) => {
+          const dateA = parseDateValue(a.record.fecharto) || a.date;
+          const dateB = parseDateValue(b.record.fecharto) || b.date;
+          return dateA - dateB || a.index - b.index;
+        })
+    : [];
+
+  const validDelays = dayRecords
+    .map(item => item.delayMinutes)
+    .filter(value => Number.isFinite(value));
+
+  const averageDelay = validDelays.length
+    ? Math.round(validDelays.reduce((sum, value) => sum + value, 0) / validDelays.length)
+    : null;
+
+  const maxDelay = Math.max(60, ...validDelays);
+  const chartMax = Math.ceil((maxDelay * 1.12) / 5) * 5;
+
+  const labels = dayRecords.map((item, index) => {
+    const plate = item.plate || `Descarga ${index + 1}`;
+    return `${index + 1}. ${plate}`;
+  });
+
+  const averageLine = averageDelay === null
+    ? []
+    : dayRecords.map(() => averageDelay);
+
+  const limitLine = dayRecords.map(() => 60);
+
+  const subtitle = dayKey
+    ? `Fecha: ${formatDateFilterOption(dayKey)} · ${dayRecords.length.toLocaleString("es-UY")} descargas`
+    : "No hay descargas para los filtros seleccionados.";
+
+  $("dailyChartSubtitle").textContent = subtitle;
 
   dateChart = new Chart($("dateChart"), {
+    type: "line",
     data: {
-      labels: recent.map(item => [
-        dateLabel(item.date),
-        `Registros: ${item.records}`,
-        item.records === 0 && !Number.isFinite(item.delayAverage)
-          ? "Sin descarga"
-          : `Demora: ${formatMinutesAsHours(item.delayAverage)}`
-      ]),
+      labels,
       datasets: [
         {
-          type: "bar",
-          label: "Registros",
-          data: recent.map(item => item.records),
-          backgroundColor: "rgba(198,83,18,.72)",
-          borderColor: "#C65312",
-          borderWidth: 1,
-          borderRadius: 6,
-          yAxisID: "y"
-        },
-        {
-          type: "line",
-          label: "Demora promedio en el período",
-          data: recent.map(item => item.delayAverage),
+          label: "Demora individual",
+          data: dayRecords.map(item => item.delayMinutes),
           borderColor: "#E86F18",
-          backgroundColor: "rgba(232,111,24,.18)",
+          backgroundColor: "rgba(232,111,24,.12)",
           pointBackgroundColor: "#E86F18",
+          pointBorderColor: "#FFFFFF",
+          pointBorderWidth: 1.5,
           pointRadius: 4,
+          pointHoverRadius: 7,
           borderWidth: 2,
-          spanGaps: false,
-          tension: .32,
-          yAxisID: "yDelay"
+          tension: .2,
+          spanGaps: false
         },
         {
-          type: "line",
-          label: "Límite Ideal 01:00hs",
-          data: recent.map(() => 60),
-          borderColor: "#FFB86B",
-          borderWidth: 2,
-          borderDash: [7, 5],
+          label: "Promedio del día",
+          data: averageLine,
+          borderColor: "#C65312",
+          backgroundColor: "transparent",
           pointRadius: 0,
           pointHoverRadius: 0,
-          fill: false,
-          tension: 0,
-          yAxisID: "yDelay"
+          borderWidth: 2,
+          borderDash: [6, 4],
+          tension: 0
+        },
+        {
+          label: "Tope máximo · 01:00",
+          data: limitLine,
+          borderColor: "#1F1F1F",
+          backgroundColor: "transparent",
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          borderWidth: 2,
+          borderDash: [3, 5],
+          tension: 0
         }
       ]
     },
     options: {
-      onClick(event, elements) {
-        const point = elements && elements[0];
-        if (!point) return;
-        const day = recent[point.index];
-        if (!day || !day.date) return;
-        selectedDetailDateKey = localDateKey(day.date);
-        renderDailyDownloadDetail();
-      },
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
-        mode: "index",
+        mode: "nearest",
         intersect: false
       },
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: "top",
+          labels: {
+            color: "#1F1F1F",
+            usePointStyle: true,
+            boxWidth: 8
+          }
         },
         tooltip: {
           backgroundColor: "#FFFFFF",
-          titleColor: "#FFFFFF",
+          titleColor: "#1F1F1F",
           bodyColor: "#1F1F1F",
           borderColor: "#DDD9D4",
           borderWidth: 1,
           callbacks: {
+            title(items) {
+              const item = dayRecords[items[0]?.dataIndex];
+              if (!item) return "Descarga";
+              return `${item.plate || "Sin matrícula"} · ${formatDownloadDateTime(item)}`;
+            },
             label(context) {
-              if (context.dataset.label === "Límite Ideal 01:00hs") {
-                return "Límite Ideal: 01:00hs";
+              if (context.dataset.label === "Tope máximo · 01:00") {
+                return "Tope máximo: 01:00";
               }
-
-              if (context.dataset.yAxisID === "yDelay") {
-                const day = recent[context.dataIndex];
-
-                if (
-                  day &&
-                  day.records === 0 &&
-                  !Number.isFinite(context.raw)
-                ) {
-                  return "Sin descarga";
-                }
-
-                return `Demora promedio en el período: ${formatMinutesAsHours(context.raw)}`;
+              if (context.dataset.label === "Promedio del día") {
+                return `Promedio del día: ${formatMinutesAsHours(context.raw)}`;
               }
-
-              return `Registros: ${context.raw ?? 0}`;
+              if (!Number.isFinite(context.raw)) {
+                return "Demora individual: Sin demora calculable";
+              }
+              return `Demora individual: ${formatMinutesAsHours(context.raw)}`;
             }
           }
         }
@@ -946,48 +973,32 @@ function renderRecentActivityChart() {
         x: {
           ticks: {
             color: "#6B6B6B",
-            maxRotation: 0,
+            maxRotation: 55,
+            minRotation: 0,
             autoSkip: true,
-            maxTicksLimit: 16,
-            font: { size: 11 },
-            padding: 10
+            maxTicksLimit: 18,
+            font: { size: 10 }
           },
-          grid: {
-            display: false
+          grid: { display: false },
+          title: {
+            display: true,
+            text: "Descargas ordenadas por hora",
+            color: "#6B6B6B"
           }
         },
         y: {
           beginAtZero: true,
-          position: "left",
+          suggestedMax: chartMax,
           ticks: {
             color: "#6B6B6B",
-            precision: 0
+            callback: value => formatMinutesAsHours(Number(value))
           },
           title: {
             display: true,
-            text: "Registros",
+            text: "Demora",
             color: "#6B6B6B"
           },
-          grid: {
-            color: "rgba(107,107,107,.16)"
-          }
-        },
-        yDelay: {
-          beginAtZero: true,
-          position: "right",
-          ticks: {
-            color: "#6B6B6B",
-            callback: value =>
-              formatMinutesAsHours(Number(value))
-          },
-          title: {
-            display: true,
-            text: "Demora promedio en el período",
-            color: "#6B6B6B"
-          },
-          grid: {
-            drawOnChartArea: false
-          }
+          grid: { color: "rgba(107,107,107,.16)" }
         }
       }
     }
@@ -1153,7 +1164,7 @@ function renderMonthlyDelayMatrix() {
 
 function render() {
   renderKpis();
-  renderRecentActivityChart();
+  renderIndividualDelayChart();
   renderDailyDownloadDetail();
   renderMonthlyDelayMatrix();
 }
