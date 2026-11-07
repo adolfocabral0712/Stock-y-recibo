@@ -485,6 +485,23 @@ function getRecordValue(record, aliases) {
   return key === undefined ? "" : cleanValue(record[key]);
 }
 
+function getRemitoSortNumber(item) {
+  const raw = getRecordValue(item.record, [
+    "remito", "remito_origen", "numero_remito", "nro_remito", "rtoorigen"
+  ]);
+  const match = raw.match(/-?\d+(?:[.,]\d+)?/);
+  if (!match) return null;
+  const number = Number(match[0].replace(",", "."));
+  return Number.isFinite(number) ? number : null;
+}
+
+function getDelayPointColor(value) {
+  if (!Number.isFinite(value)) return "#9A9A9A";
+  if (value < 60) return "#2E9D55";
+  if (value <= 120) return "#E7B416";
+  return "#D83B32";
+}
+
 function formatDownloadDateTime(item) {
   const rawDate = getRecordValue(item.record, ["fecharto", "fecha_rto", "fecha_remito", "fecha_descarga", "fecha"]);
   const rawTime = getRecordValue(item.record, ["horarto", "hora_rto", "hora_descarga", "hora"]);
@@ -862,9 +879,18 @@ function renderIndividualDelayChart() {
         .filter(item => item.dateKey === dayKey)
         .slice()
         .sort((a, b) => {
-          const dateA = parseDateValue(a.record.fecharto) || a.date;
-          const dateB = parseDateValue(b.record.fecharto) || b.date;
-          return dateA - dateB || a.index - b.index;
+          const remitoA = getRemitoSortNumber(a);
+          const remitoB = getRemitoSortNumber(b);
+
+          if (remitoA === null && remitoB !== null) return 1;
+          if (remitoA !== null && remitoB === null) return -1;
+          if (remitoA !== null && remitoB !== null && remitoA !== remitoB) {
+            return remitoA - remitoB;
+          }
+
+          const remitoTextA = getRecordValue(a.record, ["remito", "remito_origen", "numero_remito", "nro_remito", "rtoorigen"]);
+          const remitoTextB = getRecordValue(b.record, ["remito", "remito_origen", "numero_remito", "nro_remito", "rtoorigen"]);
+          return remitoTextA.localeCompare(remitoTextB, "es", { numeric: true }) || a.index - b.index;
         })
     : [];
 
@@ -879,10 +905,7 @@ function renderIndividualDelayChart() {
   const maxDelay = Math.max(60, ...validDelays);
   const chartMax = Math.ceil((maxDelay * 1.12) / 5) * 5;
 
-  const labels = dayRecords.map((item, index) => {
-    const plate = item.plate || `Descarga ${index + 1}`;
-    return `${index + 1}. ${plate}`;
-  });
+  const labels = dayRecords.map(item => item.plate || "Sin matrícula");
 
   const averageLine = averageDelay === null
     ? []
@@ -906,7 +929,7 @@ function renderIndividualDelayChart() {
           data: dayRecords.map(item => item.delayMinutes),
           borderColor: "#E86F18",
           backgroundColor: "rgba(232,111,24,.12)",
-          pointBackgroundColor: "#E86F18",
+          pointBackgroundColor: context => getDelayPointColor(context.raw),
           pointBorderColor: "#FFFFFF",
           pointBorderWidth: 1.5,
           pointRadius: 4,
@@ -966,7 +989,8 @@ function renderIndividualDelayChart() {
             title(items) {
               const item = dayRecords[items[0]?.dataIndex];
               if (!item) return "Descarga";
-              return `${item.plate || "Sin matrícula"} · ${formatDownloadDateTime(item)}`;
+              const remito = getRecordValue(item.record, ["remito", "remito_origen", "numero_remito", "nro_remito", "rtoorigen"]);
+              return `Remito ${remito || "—"} · ${item.plate || "Sin matrícula"} · ${formatDownloadDateTime(item)}`;
             },
             label(context) {
               if (context.dataset.label === "Tope máximo · 01:00") {
@@ -996,7 +1020,7 @@ function renderIndividualDelayChart() {
           grid: { display: false },
           title: {
             display: true,
-            text: "Descargas ordenadas por hora",
+            text: "Matrícula · remitos de menor a mayor",
             color: "#6B6B6B"
           }
         },
