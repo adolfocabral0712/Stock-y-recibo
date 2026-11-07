@@ -6,15 +6,15 @@
   <title>Dashboard de Densidad</title>
   <style>
     :root {
-      --bg: #101820;
-      --panel: #18242e;
-      --panel-soft: #1d2d38;
-      --border: #314654;
-      --text: #eef5f8;
-      --muted: #aebec8;
-      --accent: #54c2b5;
-      --accent-soft: rgba(84, 194, 181, 0.14);
-      --danger: #f09999;
+      --bg: #F4F3F1;
+      --panel: #FFFFFF;
+      --panel-soft: #F4F3F1;
+      --border: #DDD9D4;
+      --text: #1F1F1F;
+      --muted: #6B6B6B;
+      --accent: #C65312;
+      --accent-soft: rgba(198, 83, 18, 0.12);
+      --danger: #C65312;
     }
 
     * { box-sizing: border-box; }
@@ -120,7 +120,7 @@
       font-weight: 700;
     }
 
-    button:hover { background: rgba(84, 194, 181, .24); }
+    button:hover { background: rgba(232, 111, 24, .12); }
 
     .kpis {
       display: grid;
@@ -271,13 +271,13 @@
     }
 
     th {
-      background: #22333f;
+      background: #C65312;
       padding: 11px 12px;
       text-align: center;
       font-size: .76rem;
       letter-spacing: .035em;
       text-transform: uppercase;
-      color: #d7e2e8;
+      color: #FFFFFF;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
       width: max-content;
@@ -285,14 +285,14 @@
 
     td {
       padding: 10px 12px;
-      border-bottom: 1px solid rgba(49, 70, 84, .75);
+      border-bottom: 1px solid rgba(107, 107, 107, .18);
       font-size: .9rem;
       vertical-align: middle;
       text-align: center;
       white-space: nowrap;
     }
 
-    tbody tr:hover { background: rgba(255,255,255,.035); }
+    tbody tr:hover { background: rgba(198,83,18,.06); }
 
     .num { text-align: center; font-variant-numeric: tabular-nums; }
     .center { text-align: center; }
@@ -300,7 +300,7 @@
     tfoot td {
       position: sticky;
       bottom: 0;
-      background: #28424d;
+      background: #F4F3F1;
       font-weight: 800;
       border-top: 2px solid var(--accent);
       text-align: center;
@@ -988,6 +988,10 @@
             {
               label: "Densidad",
               data: valores,
+              borderColor: "#C65312",
+              backgroundColor: "rgba(198, 83, 18, 0.12)",
+              pointBackgroundColor: "#E86F18",
+              pointBorderColor: "#C65312",
               borderWidth: 2,
               pointRadius: 4,
               pointHoverRadius: 6,
@@ -996,6 +1000,8 @@
             {
               label: "Tendencia lineal",
               data: calcularTendenciaLineal(valores),
+              borderColor: "#E86F18",
+              backgroundColor: "#E86F18",
               borderWidth: 2,
               pointRadius: 0,
               pointHoverRadius: 0,
@@ -1005,6 +1011,8 @@
             {
               label: `Promedio (${formatearNumero(promedioGrafica, 3)})`,
               data: valores.map(() => promedioGrafica),
+              borderColor: "#6B6B6B",
+              backgroundColor: "#6B6B6B",
               borderWidth: 2,
               pointRadius: 0,
               pointHoverRadius: 0,
@@ -1024,7 +1032,7 @@
             legend: {
               display: true,
               labels: {
-                color: "#d7e2e8",
+                color: "#1F1F1F",
                 usePointStyle: true
               }
             },
@@ -1045,26 +1053,26 @@
                 maxTicksLimit: 16,
                 maxRotation: 0,
                 minRotation: 0,
-                color: "#aebec8"
+                color: "#6B6B6B"
               },
               grid: {
-                color: "rgba(49, 70, 84, .45)"
+                color: "rgba(107, 107, 107, .14)"
               }
             },
             y: {
               title: {
                 display: true,
                 text: "Densidad",
-                color: "#d7e2e8"
+                color: "#1F1F1F"
               },
               min: minimo,
               max: maximo,
               ticks: {
-                color: "#aebec8",
+                color: "#6B6B6B",
                 callback: (value) => formatearNumero(value, 3)
               },
               grid: {
-                color: "rgba(49, 70, 84, .65)"
+                color: "rgba(107, 107, 107, .18)"
               }
             }
           }
